@@ -1,6 +1,7 @@
+import "./ensure-library-engine";
+
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
-
 if (!process.env.DATABASE_URL) {
   console.error(
     "DATABASE_URL is missing. Copy .env.example to .env and run `npm run db:up` first.",
@@ -137,7 +138,14 @@ async function main() {
 
 main()
   .catch((error) => {
-    console.error(error);
+    const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+    if (code === "P1001") {
+      console.error(
+        "Cannot reach Postgres at localhost:5432. Start Docker Desktop, then run: npm run db:up",
+      );
+    } else {
+      console.error(error);
+    }
     process.exit(1);
   })
   .finally(async () => {

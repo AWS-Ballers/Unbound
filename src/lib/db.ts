@@ -1,3 +1,5 @@
+import "../../prisma/ensure-library-engine";
+
 import { PrismaClient } from "@prisma/client";
 
 declare global {

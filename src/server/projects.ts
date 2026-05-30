@@ -2,6 +2,7 @@ import type { ProjectCategory, Prisma } from "@prisma/client";
 import { cache } from "react";
 
 import { generationDefaultsSchema, projectCreateSchema, projectUpdateSchema } from "@/lib/contracts";
+import { isDatabaseUnreachableError, logDatabaseFallback } from "@/lib/database";
 import { prisma } from "@/lib/db";
 import { flags } from "@/lib/env";
 import { getDemoProjects, getDemoWorkspace } from "@/lib/mock-data";
@@ -12,15 +13,24 @@ export const listProjectsForViewer = cache(async function listProjectsForViewer(
     return getDemoProjects();
   }
 
-  const projects = await prisma.project.findMany({
-    where: { org: { ownerId: viewerId } },
-    include: {
-      sources: true,
-      clips: true,
-      briefs: { orderBy: { createdAt: "desc" }, take: 1 },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+  let projects;
+  try {
+    projects = await prisma.project.findMany({
+      where: { org: { ownerId: viewerId } },
+      include: {
+        sources: true,
+        clips: true,
+        briefs: { orderBy: { createdAt: "desc" }, take: 1 },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+  } catch (error) {
+    if (process.env.NODE_ENV === "development" && isDatabaseUnreachableError(error)) {
+      logDatabaseFallback("listProjectsForViewer");
+      return getDemoProjects();
+    }
+    throw error;
+  }
 
   return projects.map((project) => ({
     id: project.id,
@@ -184,28 +194,37 @@ export const getProjectWorkspace = cache(async function getProjectWorkspace(
     return getDemoWorkspace(projectId);
   }
 
-  const project = await prisma.project.findFirst({
-    where: {
-      id: projectId,
-      ...(viewerId ? { org: { ownerId: viewerId } } : {}),
-    },
-    include: {
-      sources: { orderBy: { createdAt: "desc" } },
-      briefs: { orderBy: { createdAt: "desc" }, take: 1 },
-      videoJobs: { orderBy: { createdAt: "desc" } },
-      clips: { orderBy: { createdAt: "desc" } },
-      imageJobs: { orderBy: { createdAt: "desc" } },
-      imageAssets: { orderBy: { createdAt: "desc" } },
-      chatThreads: {
-        orderBy: { updatedAt: "desc" },
-        include: {
-          messages: { orderBy: { createdAt: "asc" }, take: 20 },
-        },
-        take: 1,
+  let project;
+  try {
+    project = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        ...(viewerId ? { org: { ownerId: viewerId } } : {}),
       },
-      publishPackages: { orderBy: { createdAt: "desc" }, take: 1 },
-    },
-  });
+      include: {
+        sources: { orderBy: { createdAt: "desc" } },
+        briefs: { orderBy: { createdAt: "desc" }, take: 1 },
+        videoJobs: { orderBy: { createdAt: "desc" } },
+        clips: { orderBy: { createdAt: "desc" } },
+        imageJobs: { orderBy: { createdAt: "desc" } },
+        imageAssets: { orderBy: { createdAt: "desc" } },
+        chatThreads: {
+          orderBy: { updatedAt: "desc" },
+          include: {
+            messages: { orderBy: { createdAt: "asc" }, take: 20 },
+          },
+          take: 1,
+        },
+        publishPackages: { orderBy: { createdAt: "desc" }, take: 1 },
+      },
+    });
+  } catch (error) {
+    if (process.env.NODE_ENV === "development" && isDatabaseUnreachableError(error)) {
+      logDatabaseFallback("getProjectWorkspace");
+      return getDemoWorkspace(projectId);
+    }
+    throw error;
+  }
 
   if (!project) {
     throw new Error("Project not found");
