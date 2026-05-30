@@ -1,0 +1,248 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProjectCategory {
+  SAAS
+  FINANCE
+  COMMERCE
+  INTERNAL
+  OTHER
+}
+
+enum SourceType {
+  FILE
+  GITHUB
+  WEBSITE
+  TEXT
+}
+
+enum SourceStatus {
+  PENDING
+  SCANNING
+  INDEXED
+  FAILED
+}
+
+enum VideoJobMode {
+  TEXT2VIDEO
+  IMG2VIDEO
+  TRANSITION
+  EXTEND
+  MODIFY
+  SOUND
+}
+
+enum VideoJobStatus {
+  QUEUED
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum ClipTag {
+  HERO
+  BROLL
+  INTRO
+  OUTRO
+  SOCIAL
+  FULL
+}
+
+enum PublishStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  PUBLISHED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  CHANGES
+}
+
+model User {
+  id              String         @id @default(cuid())
+  email           String         @unique
+  name            String?
+  image           String?
+  passwordHash    String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  organizations   Organization[] @relation("OwnerOrganizations")
+  accounts        Account[]
+  sessions        Session[]
+}
+
+model Organization {
+  id        String    @id @default(cuid())
+  name      String
+  ownerId   String
+  owner     User      @relation("OwnerOrganizations", fields: [ownerId], references: [id], onDelete: Cascade)
+  projects  Project[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Project {
+  id                String           @id @default(cuid())
+  orgId             String
+  org               Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name              String
+  description       String?
+  category          ProjectCategory
+  activeTemplateKey String?
+  sources           Source[]
+  briefs            Brief[]
+  videoJobs         VideoJob[]
+  clips             Clip[]
+  publishPackages   PublishPackage[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([orgId])
+}
+
+model Source {
+  id           String       @id @default(cuid())
+  projectId    String
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type         SourceType
+  rawLocation  String
+  indexedData  Json?
+  status       SourceStatus @default(PENDING)
+  errorMessage String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([projectId])
+}
+
+model Brief {
+  id                String   @id @default(cuid())
+  projectId         String
+  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  data              Json
+  completenessScore Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model VideoJob {
+  id              String         @id @default(cuid())
+  projectId       String
+  project         Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  mode            VideoJobMode
+  prompt          String
+  settings        Json?
+  pixverseVideoId String?
+  status          VideoJobStatus @default(QUEUED)
+  outputUrl       String?
+  thumbnailUrl    String?
+  creditsUsed     Int            @default(0)
+  errorMessage    String?
+  clips           Clip[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([projectId, status])
+}
+
+model Clip {
+  id              String               @id @default(cuid())
+  projectId       String
+  project         Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  videoJobId      String?
+  videoJob        VideoJob?            @relation(fields: [videoJobId], references: [id], onDelete: SetNull)
+  parentClipId    String?
+  parentClip      Clip?                @relation("ClipVersions", fields: [parentClipId], references: [id], onDelete: SetNull)
+  versions        Clip[]               @relation("ClipVersions")
+  label           String
+  tag             ClipTag
+  durationSeconds Int
+  version         Int                  @default(1)
+  outputUrl       String
+  thumbnailUrl    String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  packageLinks    PublishPackageClip[]
+
+  @@index([projectId, createdAt])
+}
+
+model PublishPackage {
+  id                String               @id @default(cuid())
+  projectId         String
+  project           Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  shareToken        String               @unique
+  status            PublishStatus        @default(DRAFT)
+  publicTitle       String?
+  publicDescription String?
+  clips             PublishPackageClip[]
+  reviews           Review[]
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+}
+
+model PublishPackageClip {
+  id        String         @id @default(cuid())
+  packageId String
+  package   PublishPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  clipId    String
+  clip      Clip           @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  sortOrder Int            @default(0)
+
+  @@unique([packageId, clipId])
+}
+
+model Review {
+  id            String         @id @default(cuid())
+  packageId     String
+  package       PublishPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  reviewerEmail String
+  status        ReviewStatus   @default(PENDING)
+  comments      Json?
+  updatedAt     DateTime       @updatedAt
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([sessionToken])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@id([identifier, token])
+}
