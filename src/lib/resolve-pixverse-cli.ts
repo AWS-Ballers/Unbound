@@ -8,6 +8,38 @@ type ResolvedCli = {
   argsPrefix: string[];
 };
 
+function isWindowsBatch(command: string) {
+  const lower = command.toLowerCase();
+  return lower.endsWith(".cmd") || lower.endsWith(".bat");
+}
+
+/** execFile cannot spawn .cmd/.bat directly on Windows (EINVAL). */
+function wrapWindowsBatch(command: string): ResolvedCli {
+  return {
+    command: process.env.ComSpec ?? "cmd.exe",
+    argsPrefix: ["/d", "/s", "/c", command],
+  };
+}
+
+async function resolveFromCmdPath(cmdPath: string): Promise<ResolvedCli> {
+  if (process.platform === "win32") {
+    const indexJs = path.join(
+      path.dirname(cmdPath),
+      "node_modules",
+      "pixverse",
+      "dist",
+      "index.js",
+    );
+    if (await pathExists(indexJs)) {
+      return { command: process.execPath, argsPrefix: [indexJs] };
+    }
+
+    return wrapWindowsBatch(cmdPath);
+  }
+
+  return { command: cmdPath, argsPrefix: [] };
+}
+
 async function pathExists(filePath: string) {
   try {
     await access(filePath);
@@ -25,13 +57,16 @@ export async function resolvePixverseCli(): Promise<ResolvedCli> {
 
   if (configured && configured !== "pixverse") {
     if (await pathExists(configured)) {
+      if (isWindowsBatch(configured)) {
+        return resolveFromCmdPath(configured);
+      }
       return { command: configured, argsPrefix: [] };
     }
 
-    if (process.platform === "win32" && !configured.endsWith(".cmd")) {
+    if (process.platform === "win32" && !isWindowsBatch(configured)) {
       const withCmd = `${configured}.cmd`;
       if (await pathExists(withCmd)) {
-        return { command: withCmd, argsPrefix: [] };
+        return resolveFromCmdPath(withCmd);
       }
     }
   }
@@ -39,7 +74,7 @@ export async function resolvePixverseCli(): Promise<ResolvedCli> {
   if (process.platform === "win32") {
     const npmGlobal = path.join(process.env.APPDATA ?? "", "npm", "pixverse.cmd");
     if (await pathExists(npmGlobal)) {
-      return { command: npmGlobal, argsPrefix: [] };
+      return resolveFromCmdPath(npmGlobal);
     }
 
     const localAppData = path.join(
@@ -48,7 +83,7 @@ export async function resolvePixverseCli(): Promise<ResolvedCli> {
       "pixverse.cmd",
     );
     if (localAppData && (await pathExists(localAppData))) {
-      return { command: localAppData, argsPrefix: [] };
+      return resolveFromCmdPath(localAppData);
     }
 
     return {

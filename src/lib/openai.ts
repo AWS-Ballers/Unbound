@@ -149,16 +149,17 @@ export async function recommendTemplatesWithOpenAi(input: {
   }
 }
 
-export async function buildPixversePrompt(input: {
+export function buildPixversePromptSync(input: {
   brief: BriefData;
   templateName: string;
   templateStyle: string;
   overrides?: string;
 }) {
-  const fallback = [
+  return [
     `Create a premium launch film for ${input.brief.productName}.`,
     `Tagline: ${input.brief.tagline}.`,
     `Template: ${input.templateName}.`,
+    `Style: ${input.templateStyle}.`,
     `Show ${input.brief.keyFeatures.slice(0, 3).join(", ")}.`,
     `Environment: ${input.brief.visualStyle}.`,
     `Tone: ${input.brief.toneOfVoice}.`,
@@ -168,6 +169,15 @@ export async function buildPixversePrompt(input: {
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+export async function buildPixversePrompt(input: {
+  brief: BriefData;
+  templateName: string;
+  templateStyle: string;
+  overrides?: string;
+}) {
+  const fallback = buildPixversePromptSync(input);
 
   const response = await complete(
     "You are a creative prompt engineer specializing in PixVerse cinematic video generation. Output a single English prompt string only.",

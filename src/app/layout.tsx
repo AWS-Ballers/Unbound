@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Newsreader, Sora } from "next/font/google";
+import Script from "next/script";
 
 import { Providers } from "@/components/providers";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -43,14 +44,10 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${sora.variable} ${newsreader.variable} ${plexMono.variable} h-full scroll-smooth antialiased`}
     >
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("theme");var d=t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d)}catch(e){}})();`,
-          }}
-        />
-      </head>
       <body className="min-h-full bg-[var(--background)] text-[var(--foreground)]">
+        <Script id="launchly-theme-init" strategy="beforeInteractive">
+          {`(function(){try{var t=localStorage.getItem("theme");var d=t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d)}catch(e){}})();`}
+        </Script>
         <ThemeProvider>
           <Providers>{children}</Providers>
         </ThemeProvider>

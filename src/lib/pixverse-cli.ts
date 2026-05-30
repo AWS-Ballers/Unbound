@@ -56,6 +56,11 @@ async function runPixverseCli(args: string[]) {
     if (err.code === "ENOENT") {
       throw new Error(formatPixverseCliSetupHelp());
     }
+    if (err.code === "EINVAL") {
+      throw new Error(
+        `${formatPixverseCliSetupHelp()}\n\nWindows: PIXVERSE_CLI_PATH must not be run as a raw .cmd via execFile. Restart the dev server after updating launchly.`,
+      );
+    }
     throw error;
   }
 }
@@ -164,6 +169,7 @@ export async function submitTextToVideoViaCli(input: {
     input.settings.aspectRatio,
     "--duration",
     String(input.settings.durationSeconds),
+    "--no-wait",
     "--json",
   ];
 
@@ -223,6 +229,7 @@ export async function submitVideoEditViaCli(input: {
     input.prompt,
     "--video",
     input.sourceUrl,
+    "--no-wait",
     "--json",
   ];
 

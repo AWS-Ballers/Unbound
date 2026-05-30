@@ -1,6 +1,7 @@
 import type { ClipTag, Prisma, VideoJobMode, VideoJobStatus } from "@prisma/client";
 
 import {
+  briefDataSchema,
   briefGenerateSchema,
   briefUpdateSchema,
   calculateCompletenessScore,
@@ -10,6 +11,7 @@ import {
   studioActionSchema,
   templateRecommendSchema,
   videoGenerateSchema,
+  type BriefData,
 } from "@/lib/contracts";
 import { prisma } from "@/lib/db";
 import { flags } from "@/lib/env";
@@ -22,7 +24,7 @@ import { getGitHubAccessTokenForViewer } from "@/server/github";
 import { getDemoWorkspace } from "@/lib/mock-data";
 import {
   buildImagePrompt,
-  buildPixversePrompt,
+  buildPixversePromptSync,
   generateBriefWithOpenAi,
   recommendTemplatesWithOpenAi,
   summarizeSourceWithOpenAi,
@@ -47,6 +49,61 @@ async function getProjectBrief(projectId: string) {
   }
 
   return brief;
+}
+
+function buildFallbackBriefData(input: {
+  productName: string;
+  description?: string | null;
+  category?: string;
+}): BriefData {
+  return {
+    productName: input.productName,
+    tagline: input.description?.slice(0, 120) || `Launch story for ${input.productName}`,
+    productCategory: input.category ?? "SAAS",
+    keyFeatures: ["Core product value", "Key workflow", "Launch payoff"],
+    valueProposition:
+      input.description || `A premium launch film introducing ${input.productName} to the market.`,
+    targetAudience: "Startup founders, product marketers, and launch teams",
+    toneOfVoice: "Confident, cinematic, polished",
+    visualStyle: "Premium lighting, clean product framing, modern campaign aesthetic",
+    primaryCTA: "Start your launch",
+    differentiators: ["Clear positioning", "High-end visual tone", "Memorable launch pacing"],
+  };
+}
+
+async function getBriefDataForGeneration(projectId: string): Promise<BriefData> {
+  if (flags.isDemoMode) {
+    const workspace = getDemoWorkspace(projectId);
+    if (workspace.brief?.data) {
+      return briefDataSchema.parse(workspace.brief.data);
+    }
+
+    return buildFallbackBriefData({
+      productName: workspace.project.name,
+      description: workspace.project.description,
+      category: workspace.project.category,
+    });
+  }
+
+  const brief = await prisma.brief.findFirst({
+    where: { projectId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (brief?.data) {
+    return briefDataSchema.parse(brief.data);
+  }
+
+  const project = await prisma.project.findUnique({ where: { id: projectId } });
+  if (!project) {
+    throw new Error("Project not found");
+  }
+
+  return buildFallbackBriefData({
+    productName: project.name,
+    description: project.description,
+    category: project.category,
+  });
 }
 
 export async function createSourceRecord(input: unknown, viewerId?: string) {
@@ -190,12 +247,10 @@ export async function updateBriefRecord(id: string, input: unknown) {
 
 export async function recommendTemplates(input: unknown) {
   const parsed = templateRecommendSchema.parse(input);
-  const brief = flags.isDemoMode
-    ? getDemoWorkspace(parsed.projectId).brief
-    : await getProjectBrief(parsed.projectId);
+  const briefData = await getBriefDataForGeneration(parsed.projectId);
 
   const recommendations = await recommendTemplatesWithOpenAi({
-    brief: brief.data as never,
+    brief: briefData,
     channelHints: parsed.channelHints,
   });
 
@@ -266,12 +321,10 @@ export async function generateVideoJob(input: unknown) {
     throw new Error("Invalid template key");
   }
 
-  const brief = flags.isDemoMode
-    ? getDemoWorkspace(parsed.projectId).brief
-    : await getProjectBrief(parsed.projectId);
+  const briefData = await getBriefDataForGeneration(parsed.projectId);
 
-  const prompt = await buildPixversePrompt({
-    brief: brief.data as never,
+  const prompt = buildPixversePromptSync({
+    brief: briefData,
     templateName: template.name,
     templateStyle: template.style,
     overrides: [
@@ -341,15 +394,13 @@ export async function generateVideoJob(input: unknown) {
 
 export async function generateImageAsset(input: unknown) {
   const parsed = imageGenerateSchema.parse(input);
-  const brief = flags.isDemoMode
-    ? getDemoWorkspace(parsed.projectId).brief
-    : await getProjectBrief(parsed.projectId);
+  const briefData = await getBriefDataForGeneration(parsed.projectId);
   const template = parsed.templateKey
     ? templateCatalog.find((item) => item.key === parsed.templateKey)
     : null;
 
   const prompt = await buildImagePrompt({
-    brief: (brief?.data ?? {}) as never,
+    brief: briefData,
     templateName: template?.name,
     direction: parsed.prompt,
   });

@@ -13,6 +13,8 @@ export async function POST(request: Request) {
       typeof body?.projectId === "string" ? body.projectId : source.projectId;
     revalidatePath(`/projects/${projectId}`, "layout");
     revalidatePath(`/projects/${projectId}/sources`);
+    revalidatePath("/dashboard", "layout");
+    revalidatePath("/projects", "layout");
     return NextResponse.json({ source });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to create source" }, { status: 400 });

@@ -1,4 +1,5 @@
 import type { ProjectCategory, Prisma } from "@prisma/client";
+import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { generationDefaultsSchema, projectCreateSchema, projectUpdateSchema } from "@/lib/contracts";
@@ -256,7 +257,7 @@ export const getProjectWorkspace = cache(async function getProjectWorkspace(
   }
 
   if (!project) {
-    throw new Error("Project not found");
+    notFound();
   }
 
   return {

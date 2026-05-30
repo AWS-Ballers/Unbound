@@ -13,9 +13,16 @@ export const publishStatuses = ["DRAFT", "REVIEW", "APPROVED", "PUBLISHED"] as c
 export const imageAssetKinds = ["GENERATED", "REFERENCE", "COVER"] as const;
 export const chatRoles = ["USER", "ASSISTANT", "SYSTEM"] as const;
 
+export const sitePathOrUrlSchema = z
+  .string()
+  .min(1)
+  .refine((value) => value.startsWith("/") || z.string().url().safeParse(value).success, {
+    message: "Must be a valid URL or site path",
+  });
+
 export const templateSettingsSchema = z.object({
   templateKey: z.string().min(1),
-  posterUrl: z.string().url().optional(),
+  posterUrl: sitePathOrUrlSchema.optional(),
   posterPrompt: z.string().optional(),
   style: z.string().optional(),
 });

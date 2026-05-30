@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft, Loader2, SkipForward, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -14,6 +14,65 @@ import {
 import type { z } from "zod";
 
 type GenerationDefaults = z.infer<typeof generationDefaultsSchema>;
+
+async function pollVideoJobsUntilReady(
+  projectId: string,
+  onUpdate: () => void,
+  signal: AbortSignal,
+) {
+  const maxAttempts = 120;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    if (signal.aborted) {
+      return;
+    }
+
+    if (attempt > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+
+    if (signal.aborted) {
+      return;
+    }
+
+    const response = await fetch("/api/jobs/poll", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId }),
+      signal,
+    }).catch(() => null);
+
+    if (!response?.ok) {
+      continue;
+    }
+
+    const payload = await response.json().catch(() => null);
+    const jobs = Array.isArray(payload?.jobs) ? payload.jobs : [];
+    onUpdate();
+
+    const stillRunning = jobs.some(
+      (job: { status?: string }) => job.status === "QUEUED" || job.status === "PROCESSING",
+    );
+
+    if (!stillRunning) {
+      toast.success("Video is ready — open Library to download");
+      return;
+    }
+  }
+
+  toast.message("Video is still rendering. Check Library in a few minutes.");
+}
+
+function startVideoJobPolling(
+  projectId: string,
+  onUpdate: () => void,
+  pollRef: React.MutableRefObject<AbortController | null>,
+) {
+  pollRef.current?.abort();
+  const controller = new AbortController();
+  pollRef.current = controller;
+  void pollVideoJobsUntilReady(projectId, onUpdate, controller.signal);
+}
 
 export function VideoRightPanel({
   projectId,
@@ -27,6 +86,7 @@ export function VideoRightPanel({
   generationDefaults: GenerationDefaults;
 }) {
   const router = useRouter();
+  const pollRef = useRef<AbortController | null>(null);
   const [pending, setPending] = useState<"skip" | "generate" | null>(null);
   const [durationSeconds, setDurationSeconds] = useState(() =>
     normalizeVideoDuration(generationDefaults.durationSeconds),
@@ -57,8 +117,9 @@ export function VideoRightPanel({
     setPending("skip");
     try {
       await generateVideo(activeTemplateKey ?? defaultTemplateKey);
-      toast.success("Video generation started with the default template");
+      toast.success("Video generation started");
       router.refresh();
+      startVideoJobPolling(projectId, () => router.refresh(), pollRef);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to generate video");
     } finally {
@@ -72,6 +133,7 @@ export function VideoRightPanel({
       await generateVideo(activeTemplateKey ?? defaultTemplateKey);
       toast.success("Video generation started");
       router.refresh();
+      startVideoJobPolling(projectId, () => router.refresh(), pollRef);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to generate video");
     } finally {
@@ -135,8 +197,8 @@ export function VideoRightPanel({
         </div>
 
         <p className="mt-6 text-xs leading-5 text-[var(--muted)]">
-          Templates include preview posters so you can choose a visual direction. When generation
-          finishes, the clip is saved to your workspace library.
+          Generation starts immediately and continues in the background. When the render finishes,
+          the clip appears in your workspace library.
         </p>
       </div>
 
