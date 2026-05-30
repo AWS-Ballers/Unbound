@@ -535,17 +535,28 @@ export async function createStudioJob(
     };
   }
 
-  const clip = parsed.clipId ? await prisma.clip.findUnique({ where: { id: parsed.clipId } }) : null;
+  const clip = parsed.clipId
+    ? await prisma.clip.findUnique({
+        where: { id: parsed.clipId },
+        include: { videoJob: { select: { pixverseVideoId: true } } },
+      })
+    : null;
   if (!clip) {
     if (!parsed.inputUrl || !parsed.projectId) {
       throw new Error("Choose a workspace clip or provide a video URL to edit");
     }
   }
 
+  const pixverseVideoId = clip?.videoJob?.pixverseVideoId;
+  const sourceUrl =
+    pixverseVideoId && /^\d+$/.test(pixverseVideoId)
+      ? pixverseVideoId
+      : (clip?.outputUrl ?? parsed.inputUrl!);
+
   const result = await submitVideoEdit({
     mode,
     prompt: parsed.instructions,
-    sourceUrl: clip?.outputUrl ?? parsed.inputUrl!,
+    sourceUrl,
   });
 
   const job = await prisma.videoJob.create({

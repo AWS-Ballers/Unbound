@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 import { env } from "@/lib/env";
-import { persistRemoteAsset } from "@/lib/local-assets";
+import { persistRemoteAsset, resolvePixverseVideoInput } from "@/lib/local-assets";
 import { formatPixverseCliSetupHelp, resolvePixverseCli } from "@/lib/resolve-pixverse-cli";
 
 const execFileAsync = promisify(execFile);
@@ -222,13 +222,15 @@ export async function submitVideoEditViaCli(input: {
     TRANSITION: "transition",
   } as const;
 
+  const videoInput = await resolvePixverseVideoInput(input.sourceUrl);
+
   const args = [
     "create",
     commandMap[input.mode],
     "--prompt",
     input.prompt,
     "--video",
-    input.sourceUrl,
+    videoInput,
     "--no-wait",
     "--json",
   ];
