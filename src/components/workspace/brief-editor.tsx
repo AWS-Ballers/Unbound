@@ -47,7 +47,7 @@ export function BriefEditor({
           ["primaryCTA", "Primary CTA"],
         ].map(([key, label]) => (
           <label key={key} className="block space-y-2 text-sm">
-            <span className="text-[var(--muted)]">{label}</span>
+            <span className="font-medium text-[var(--muted)]">{label}</span>
             <input
               value={data[key as keyof BriefData] as string}
               onChange={(event) =>
@@ -56,7 +56,7 @@ export function BriefEditor({
                   [key]: event.target.value,
                 }))
               }
-              className="surface-strong w-full rounded-2xl px-4 py-3 outline-none"
+              className="surface-strong w-full rounded-2xl px-4 py-3 text-[var(--foreground)] outline-none transition focus:border-[var(--border-strong)] focus:bg-white"
             />
           </label>
         ))}
@@ -68,7 +68,7 @@ export function BriefEditor({
         ["differentiators", "Differentiators (comma-separated)"],
       ].map(([key, label]) => (
         <label key={key} className="block space-y-2 text-sm">
-          <span className="text-[var(--muted)]">{label}</span>
+          <span className="font-medium text-[var(--muted)]">{label}</span>
           <textarea
             value={
               Array.isArray(data[key as keyof BriefData])
@@ -86,7 +86,7 @@ export function BriefEditor({
                       .filter(Boolean),
               }))
             }
-            className="surface-strong min-h-24 w-full rounded-2xl px-4 py-3 outline-none"
+            className="surface-strong min-h-24 w-full rounded-2xl px-4 py-3 text-[var(--foreground)] outline-none transition focus:border-[var(--border-strong)] focus:bg-white"
           />
         </label>
       ))}
@@ -94,7 +94,7 @@ export function BriefEditor({
       <button
         type="button"
         onClick={saveBrief}
-        className="inline-flex w-fit items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
+        className="inline-flex w-fit items-center gap-2 rounded-full bg-[var(--foreground)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_36px_rgba(15,23,42,0.14)] transition duration-200 hover:-translate-y-0.5 hover:bg-[var(--accent-strong)]"
       >
         <Save className="h-4 w-4" />
         Save brief

@@ -1,5 +1,22 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Database (required for production mode)
+
+Set `DEMO_MODE=false` and a `DATABASE_URL` in `.env`. Then start Postgres and apply the schema:
+
+```bash
+# Option A — Docker Desktop running
+npm run db:setup
+
+# Option B — local Postgres on port 5432, then:
+npx prisma db push
+npm run db:seed
+```
+
+Sign in with `demo@launchly.app` / `Launchly123!`.
+
+If you see `the URL must start with the protocol prisma://`, run `npx prisma generate` after pulling (the project uses `engineType = "library"` for normal `postgresql://` URLs).
+
 ## Getting Started
 
 First, run the development server:

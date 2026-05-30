@@ -103,6 +103,7 @@ export function getDemoWorkspace(projectId = "launchly-demo-project") {
       description: "AI bookkeeping and runway forecasting for startup finance teams",
       category: "FINANCE",
       activeTemplateKey: "launch-cinematic",
+      generationDefaults: { durationSeconds: 12, aspectRatio: "16:9", style: "Cinematic" },
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -110,7 +111,9 @@ export function getDemoWorkspace(projectId = "launchly-demo-project") {
       {
         id: "source-text",
         type: "TEXT",
+        title: "Founder positioning notes",
         rawLocation: "Founder positioning notes",
+        metadata: null,
         status: "INDEXED",
         indexedData: sourceSummaries[0],
         createdAt: new Date().toISOString(),
@@ -118,7 +121,9 @@ export function getDemoWorkspace(projectId = "launchly-demo-project") {
       {
         id: "source-website",
         type: "WEBSITE",
+        title: "Orbit website",
         rawLocation: "https://orbitfinance.app",
+        metadata: null,
         status: "INDEXED",
         indexedData: sourceSummaries[1],
         createdAt: new Date().toISOString(),
@@ -126,9 +131,19 @@ export function getDemoWorkspace(projectId = "launchly-demo-project") {
       {
         id: "source-github",
         type: "GITHUB",
+        title: "example/orbit-finance",
         rawLocation: "https://github.com/example/orbit-finance",
-        status: "SCANNING",
-        indexedData: null,
+        metadata: {
+          connector: "github",
+          fullName: "example/orbit-finance",
+          branch: "main",
+          language: "TypeScript",
+          stats: { totalFilesInTree: 142, indexedFiles: 18 },
+          treePreview: ["README.md", "package.json", "src/app/page.tsx", "src/lib/pricing.ts"],
+          indexedPaths: ["README.md", "package.json", "src/app/page.tsx", "src/lib/pricing.ts"],
+        },
+        status: "INDEXED",
+        indexedData: sourceSummaries[0],
         createdAt: new Date().toISOString(),
       },
     ],
@@ -163,6 +178,34 @@ export function getDemoWorkspace(projectId = "launchly-demo-project") {
         createdAt: new Date().toISOString(),
       },
     ],
+    imageJobs: [
+      {
+        id: "image-job-1",
+        prompt: "Premium Orbit Finance campaign still with bright white studio lighting and a focused product dashboard reveal.",
+        status: "READY",
+        settings: { size: "landscape_16_9", templateKey: "launch-cinematic" },
+        outputUrl:
+          "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=premium%20fintech%20campaign%20still%2C%20white%20studio%20lighting%2C%20clean%20dashboard%20reveal%2C%20realistic%20product%20advertising&image_size=landscape_16_9",
+        thumbnailUrl:
+          "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=premium%20fintech%20campaign%20still%2C%20white%20studio%20lighting%2C%20clean%20dashboard%20reveal%2C%20realistic%20product%20advertising&image_size=landscape_16_9",
+        createdAt: new Date().toISOString(),
+      },
+    ],
+    images: [
+      {
+        id: "image-hero",
+        imageJobId: "image-job-1",
+        label: "Orbit hero concept",
+        kind: "GENERATED",
+        prompt: "Premium Orbit Finance campaign still with bright white studio lighting and a focused product dashboard reveal.",
+        outputUrl:
+          "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=premium%20fintech%20campaign%20still%2C%20white%20studio%20lighting%2C%20clean%20dashboard%20reveal%2C%20realistic%20product%20advertising&image_size=landscape_16_9",
+        thumbnailUrl:
+          "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=premium%20fintech%20campaign%20still%2C%20white%20studio%20lighting%2C%20clean%20dashboard%20reveal%2C%20realistic%20product%20advertising&image_size=landscape_16_9",
+        metadata: { size: "landscape_16_9" },
+        createdAt: new Date().toISOString(),
+      },
+    ],
     clips: [
       {
         id: "clip-hero",
@@ -187,6 +230,26 @@ export function getDemoWorkspace(projectId = "launchly-demo-project") {
         createdAt: new Date().toISOString(),
       },
     ],
+    chatThread: {
+      id: "thread-main",
+      title: "Orbit workspace chat",
+      messages: [
+        {
+          id: "message-system",
+          role: "SYSTEM",
+          content: "Welcome back. Add sources, choose a template, then generate image and video concepts from the workspace context.",
+          citations: null,
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: "message-assistant",
+          role: "ASSISTANT",
+          content: "You are one source away from a stronger product narrative. Add the GitHub repo or upload pricing and onboarding docs next.",
+          citations: ["source-website", "source-text"],
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    },
     publishPackage: {
       id: "package-main",
       shareToken: "share-orbit-finance",

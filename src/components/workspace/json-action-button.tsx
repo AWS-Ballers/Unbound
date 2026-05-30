@@ -45,7 +45,7 @@ export function JsonActionButton({
       type="button"
       onClick={handleClick}
       disabled={pending}
-      className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-60"
+      className="panel-btn panel-btn-primary disabled:opacity-60"
     >
       {pending ? (
         <Loader2 className="h-4 w-4 animate-spin" />

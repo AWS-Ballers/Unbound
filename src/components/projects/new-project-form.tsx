@@ -33,23 +33,30 @@ export function NewProjectForm() {
       return;
     }
 
+    const payload = await response.json().catch(() => null);
+
     toast.success("Project created");
     setName("");
     setDescription("");
+    if (payload?.project?.id) {
+      router.push(`/projects/${payload.project.id}/sources`);
+      return;
+    }
+
     router.refresh();
   }
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="surface rounded-[28px] p-5 md:p-6"
+      className="surface fade-up rounded-[32px] p-5 md:p-6"
     >
       <div className="mb-4 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
           <Plus className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-sm font-medium text-[var(--foreground)]">
+          <p className="text-sm font-semibold text-[var(--foreground)]">
             New project
           </p>
           <p className="text-sm text-[var(--muted)]">
@@ -63,21 +70,21 @@ export function NewProjectForm() {
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="Project name"
-          className="surface-strong col-span-1 rounded-2xl px-4 py-3 outline-none"
+          className="surface-strong col-span-1 rounded-2xl px-4 py-3 text-[var(--foreground)] outline-none transition focus:border-[var(--border-strong)] focus:bg-white"
           required
         />
         <input
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           placeholder="Short description"
-          className="surface-strong col-span-1 rounded-2xl px-4 py-3 outline-none md:col-span-1"
+          className="surface-strong col-span-1 rounded-2xl px-4 py-3 text-[var(--foreground)] outline-none transition focus:border-[var(--border-strong)] focus:bg-white md:col-span-1"
         />
         <select
           value={category}
           onChange={(event) =>
             setCategory(event.target.value as (typeof projectCategories)[number])
           }
-          className="surface-strong rounded-2xl px-4 py-3 outline-none"
+          className="surface-strong rounded-2xl px-4 py-3 text-[var(--foreground)] outline-none transition focus:border-[var(--border-strong)] focus:bg-white"
         >
           {projectCategories.map((item) => (
             <option key={item} value={item}>
@@ -90,7 +97,7 @@ export function NewProjectForm() {
       <button
         type="submit"
         disabled={pending}
-        className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-60"
+        className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--foreground)] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_36px_rgba(15,23,42,0.14)] transition duration-200 hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] disabled:opacity-60"
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
         Create project

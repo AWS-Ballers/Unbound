@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { getViewer } from "@/lib/auth";
@@ -13,6 +14,9 @@ export async function POST(request: Request) {
   try {
     const viewer = await getViewer();
     const project = await createProjectForViewer(viewer.id, await request.json());
+    revalidatePath("/projects");
+    revalidatePath("/dashboard");
+    revalidatePath(`/projects/${project.id}`, "layout");
     return NextResponse.json({ project });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to create project" }, { status: 400 });

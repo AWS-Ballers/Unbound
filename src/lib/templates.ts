@@ -5,6 +5,9 @@ export const templateCatalog = [
     category: "Hero",
     description: "Premium reveal with dramatic movement, mood lighting, and a sharp product payoff.",
     style: "Cinematic camera sweeps, dark polished environments, premium contrast, emotionally charged pacing.",
+    posterPrompt: "luxury fintech launch film still, cinematic glass dashboard, white product studio, soft reflected light, premium editorial composition, realistic product campaign photography",
+    posterUrl: "/templates/launch-cinematic.png",
+    capabilities: ["video", "image"],
   },
   {
     key: "tvc",
@@ -12,6 +15,9 @@ export const templateCatalog = [
     category: "Brand",
     description: "Commercial-style storytelling built for broad appeal and polished brand positioning.",
     style: "Fast-cut scenes, aspirational imagery, high-end production polish, headline-driven messaging.",
+    posterPrompt: "high end brand commercial frame, elegant founder focused product reveal, bright white set, cinematic advertising photography, premium startup campaign",
+    posterUrl: "/templates/tvc.png",
+    capabilities: ["video", "image"],
   },
   {
     key: "product-demo",
@@ -19,6 +25,9 @@ export const templateCatalog = [
     category: "Utility",
     description: "Feature-led flow that makes product interactions feel tangible and desirable.",
     style: "UI closeups, precise transitions, contextual overlays, crisp framing.",
+    posterPrompt: "software product demo keyframe, floating app interface, crisp shadows, white minimal studio, realistic startup product visualization",
+    posterUrl: "/templates/product-demo.png",
+    capabilities: ["video", "image"],
   },
   {
     key: "brand-story",
@@ -26,6 +35,9 @@ export const templateCatalog = [
     category: "Narrative",
     description: "A founder-energy narrative arc with market tension, mission, and momentum.",
     style: "Editorial storytelling, emotional pacing, human-centric framing, warm narrative beats.",
+    posterPrompt: "editorial startup brand story still, founder and product atmosphere, warm natural light, magazine quality composition, premium campaign frame",
+    posterUrl: "/templates/brand-story.png",
+    capabilities: ["video", "image"],
   },
   {
     key: "feature-highlight",
@@ -33,6 +45,9 @@ export const templateCatalog = [
     category: "Utility",
     description: "Short, punchy video focused on a standout capability or workflow.",
     style: "Focused framing, dynamic callouts, clean environment, confident tempo.",
+    posterPrompt: "product feature highlight key visual, clean interface closeup, bright contrast, white studio background, realistic product campaign frame",
+    posterUrl: "/templates/feature-highlight.png",
+    capabilities: ["video", "image"],
   },
   {
     key: "explainer",
@@ -40,6 +55,9 @@ export const templateCatalog = [
     category: "Education",
     description: "Clear concept-driven story for products that need teaching before selling.",
     style: "Readable pacing, visual metaphors, structured progression, grounded clarity.",
+    posterPrompt: "educational product explainer frame, visual metaphors, clear composition, bright white modern environment, realistic campaign still",
+    posterUrl: "/templates/explainer.png",
+    capabilities: ["video", "image"],
   },
   {
     key: "investor-clip",
@@ -47,6 +65,9 @@ export const templateCatalog = [
     category: "Investor",
     description: "High-signal pitch video emphasizing market size, traction, and defensibility.",
     style: "Authority-driven visuals, macro market cues, bold metrics, restrained drama.",
+    posterPrompt: "investor pitch launch frame, confident startup analytics dashboard, white premium boardroom atmosphere, realistic campaign image",
+    posterUrl: "/templates/investor-clip.png",
+    capabilities: ["video", "image"],
   },
   {
     key: "social-ad",
@@ -54,6 +75,9 @@ export const templateCatalog = [
     category: "Growth",
     description: "Mobile-friendly punch with fast value framing and immediate call to action.",
     style: "High contrast, rapid hooks, compact scenes, direct CTA framing.",
+    posterPrompt: "social ad vertical keyframe, punchy startup product visual, crisp motion feel, bright studio light, realistic ad photography",
+    posterUrl: "/templates/social-ad.png",
+    capabilities: ["video", "image"],
   },
   {
     key: "event-teaser",
@@ -61,6 +85,9 @@ export const templateCatalog = [
     category: "Launch",
     description: "Build hype around a launch moment, reveal, or upcoming campaign.",
     style: "Pulse-driven motion, anticipation cuts, dramatic typography, countdown energy.",
+    posterPrompt: "product launch event teaser poster, dramatic white stage lighting, countdown energy, premium campaign composition, realistic reveal frame",
+    posterUrl: "/templates/event-teaser.png",
+    capabilities: ["video", "image"],
   },
   {
     key: "testimonial-reel",
@@ -68,6 +95,9 @@ export const templateCatalog = [
     category: "Trust",
     description: "Social-proof-led montage that turns validation into momentum.",
     style: "Human moments, quote-driven structure, soft cinematic light, grounded credibility.",
+    posterPrompt: "testimonial campaign still, authentic customer moment with product, soft daylight, clean premium brand composition, realistic advertising photography",
+    posterUrl: "/templates/testimonial-reel.png",
+    capabilities: ["video", "image"],
   },
 ] as const;
 

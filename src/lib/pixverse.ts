@@ -1,4 +1,10 @@
 import { env, flags } from "@/lib/env";
+import {
+  createImageViaCli,
+  pollVideoViaCli,
+  submitTextToVideoViaCli,
+  submitVideoEditViaCli,
+} from "@/lib/pixverse-cli";
 
 function makeMockVideo(label: string) {
   const id = `pv_${crypto.randomUUID()}`;
@@ -35,7 +41,12 @@ async function pixverseFetch(path: string, init: RequestInit) {
 export async function submitTextToVideo(input: {
   prompt: string;
   settings: { durationSeconds: number; aspectRatio: string; style: string };
+  sourceImagePath?: string;
 }) {
+  if (flags.usesPixverseCli) {
+    return submitTextToVideoViaCli(input);
+  }
+
   if (!flags.hasPixverse) {
     return makeMockVideo("text2video");
   }
@@ -60,6 +71,10 @@ export async function submitTextToVideo(input: {
 }
 
 export async function pollPixverseVideo(videoId: string) {
+  if (flags.usesPixverseCli) {
+    return pollVideoViaCli(videoId);
+  }
+
   if (!flags.hasPixverse) {
     return makeMockVideo("poll");
   }
@@ -82,6 +97,10 @@ export async function submitVideoEdit(input: {
   prompt: string;
   sourceUrl: string;
 }) {
+  if (flags.usesPixverseCli) {
+    return submitVideoEditViaCli(input);
+  }
+
   if (!flags.hasPixverse) {
     return makeMockVideo(input.mode.toLowerCase());
   }
@@ -107,4 +126,18 @@ export async function submitVideoEdit(input: {
     thumbnailUrl: null,
     creditsUsed: 0,
   };
+}
+
+export async function generateImageWithPixverse(input: {
+  prompt: string;
+  size?: string;
+  sourceImagePath?: string;
+}) {
+  if (!flags.hasPixverseCli) {
+    throw new Error(
+      "PixVerse image generation requires PIXVERSE_CLI_ENABLED=true and the pixverse CLI installed locally.",
+    );
+  }
+
+  return createImageViaCli(input);
 }

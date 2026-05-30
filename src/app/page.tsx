@@ -1,5 +1,8 @@
 import { redirect } from "next/navigation";
 
-export default function Home() {
-  redirect("/projects");
+import { getOptionalViewer } from "@/lib/auth";
+
+export default async function Home() {
+  const viewer = await getOptionalViewer();
+  redirect(viewer ? "/dashboard" : "/auth/signin");
 }

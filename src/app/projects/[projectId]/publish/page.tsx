@@ -17,17 +17,18 @@ export default async function PublishPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-semibold text-[var(--foreground)]">Publish package</h2>
-          <p className="mt-2 text-sm text-[var(--muted)]">Bundle approved clips into a shareable preview package with a public review link.</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Review handoff</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--foreground)]">Publish package</h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Bundle approved clips into a shareable preview package with a public review link.</p>
         </div>
         <JsonActionButton endpoint="/api/publish" label="Create share package" payload={{ projectId, clipIds: workspace.clips.map((clip) => clip.id), publicTitle: `${workspace.project.name} launch preview`, publicDescription: workspace.project.description }} />
       </div>
-      <div className="surface rounded-[28px] p-5">
+      <div className="surface fade-up rounded-[30px] p-5">
         <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Current share link</p>
         {workspace.publishPackage ? (
           <div className="mt-4 flex flex-wrap items-center gap-4">
-            <code className="rounded-2xl bg-black/20 px-4 py-3 text-sm text-cyan-100">/share/{workspace.publishPackage.shareToken}</code>
-            <Link href={`/share/${workspace.publishPackage.shareToken}`} className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white">Open preview</Link>
+            <code className="soft-code rounded-2xl px-4 py-3 text-sm">/share/{workspace.publishPackage.shareToken}</code>
+            <Link href={`/share/${workspace.publishPackage.shareToken}`} className="inline-flex items-center rounded-full bg-[var(--foreground)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_36px_rgba(15,23,42,0.14)] transition duration-200 hover:-translate-y-0.5 hover:bg-[var(--accent-strong)]">Open preview</Link>
           </div>
         ) : (
           <p className="mt-4 text-sm text-[var(--muted)]">Create a package to generate a public preview link.</p>

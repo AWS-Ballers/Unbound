@@ -1,12 +1,11 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import bcrypt from "bcryptjs";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 
+import { authorizeCredentials } from "@/lib/auth-credentials";
 import { prisma } from "@/lib/db";
 import { env, flags } from "@/lib/env";
-import { demoViewer } from "@/lib/mock-data";
 
 const providers = [];
 
@@ -15,6 +14,11 @@ if (flags.hasGitHubAuth) {
     GitHub({
       clientId: env.githubId!,
       clientSecret: env.githubSecret!,
+      authorization: {
+        params: {
+          scope: "read:user repo",
+        },
+      },
     }),
   );
 }
@@ -36,39 +40,7 @@ providers.push(
         return null;
       }
 
-      if (
-        flags.isDemoMode &&
-        email === demoViewer.email &&
-        password === "Launchly123!"
-      ) {
-        return {
-          id: demoViewer.id,
-          email: demoViewer.email,
-          name: demoViewer.name,
-          image: demoViewer.image,
-        };
-      }
-
-      if (!flags.hasDatabase) {
-        return null;
-      }
-
-      const user = await prisma.user.findUnique({ where: { email } });
-      if (!user?.passwordHash) {
-        return null;
-      }
-
-      const isValid = await bcrypt.compare(password, user.passwordHash);
-      if (!isValid) {
-        return null;
-      }
-
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        image: user.image,
-      };
+      return authorizeCredentials(email, password);
     },
   }),
 );

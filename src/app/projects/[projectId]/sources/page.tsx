@@ -1,5 +1,9 @@
+import { PageHeader } from "@/components/ui/page-header";
+import { GitHubConnector } from "@/components/workspace/github-connector";
 import { SourceForm } from "@/components/workspace/source-form";
+import { SourceList } from "@/components/workspace/source-list";
 import { getViewer } from "@/lib/auth";
+import { flags } from "@/lib/env";
 import { getProjectWorkspace } from "@/server/projects";
 
 export default async function SourcesPage({
@@ -12,26 +16,31 @@ export default async function SourcesPage({
   const workspace = await getProjectWorkspace(projectId, viewer.id);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-semibold text-[var(--foreground)]">Source ingestion</h2>
-        <p className="mt-2 text-sm text-[var(--muted)]">Add GitHub repos, websites, file metadata, or plain text and turn them into structured source summaries.</p>
-      </div>
-      <SourceForm projectId={projectId} />
-      <div className="grid gap-4">
-        {workspace.sources.map((source) => (
-          <article key={source.id} className="surface rounded-[28px] p-5">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">{source.type}</p>
-                <h3 className="mt-2 text-lg font-semibold text-[var(--foreground)]">{source.rawLocation}</h3>
-              </div>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[var(--muted)]">{source.status}</span>
-            </div>
-            <pre className="mt-4 overflow-x-auto rounded-2xl bg-black/20 p-4 text-xs leading-6 text-cyan-100">{JSON.stringify(source.indexedData, null, 2)}</pre>
-          </article>
-        ))}
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        eyebrow="Workspace"
+        title="Bring every source into one place"
+        description="Connect GitHub for codebase inspection, upload files, or capture websites. The assistant on the right helps you find missing context before generation."
+      />
+
+      <GitHubConnector
+        projectId={projectId}
+        hasGitHubAuth={flags.hasGitHubAuth}
+        callbackUrl={`/projects/${projectId}/sources`}
+      />
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold text-[var(--foreground)]">Other sources</h3>
+        <SourceForm projectId={projectId} />
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-[var(--foreground)]">Indexed sources</h3>
+          <span className="text-xs text-[var(--muted)]">{workspace.sources.length} items</span>
+        </div>
+        <SourceList sources={workspace.sources} />
+      </section>
     </div>
   );
 }

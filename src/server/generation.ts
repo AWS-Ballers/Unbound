@@ -4,6 +4,7 @@ import {
   briefGenerateSchema,
   briefUpdateSchema,
   calculateCompletenessScore,
+  imageGenerateSchema,
   publishCreateSchema,
   sourceCreateSchema,
   studioActionSchema,
@@ -12,15 +13,22 @@ import {
 } from "@/lib/contracts";
 import { prisma } from "@/lib/db";
 import { flags } from "@/lib/env";
-import { fetchGitHubSource } from "@/lib/github";
+import {
+  buildGitHubSourceContent,
+  buildGitHubSourceMetadata,
+  inspectGitHubRepository,
+} from "@/lib/github";
+import { getGitHubAccessTokenForViewer } from "@/server/github";
 import { getDemoWorkspace } from "@/lib/mock-data";
 import {
+  buildImagePrompt,
   buildPixversePrompt,
   generateBriefWithOpenAi,
   recommendTemplatesWithOpenAi,
   summarizeSourceWithOpenAi,
 } from "@/lib/openai";
 import {
+  generateImageWithPixverse,
   pollPixverseVideo,
   submitTextToVideo,
   submitVideoEdit,
@@ -41,8 +49,10 @@ async function getProjectBrief(projectId: string) {
   return brief;
 }
 
-export async function createSourceRecord(input: unknown) {
+export async function createSourceRecord(input: unknown, viewerId?: string) {
   const parsed = sourceCreateSchema.parse(input);
+
+  let githubMetadata: Record<string, unknown> | undefined;
 
   const readContent = async () => {
     if (parsed.type === "TEXT" || parsed.type === "FILE") {
@@ -50,8 +60,10 @@ export async function createSourceRecord(input: unknown) {
     }
 
     if (parsed.type === "GITHUB") {
-      const repo = await fetchGitHubSource(parsed.rawLocation);
-      return `${repo.name}\n${repo.description ?? ""}\n${repo.readme}`;
+      const accessToken = viewerId ? await getGitHubAccessTokenForViewer(viewerId) : null;
+      const inspection = await inspectGitHubRepository(parsed.rawLocation, accessToken);
+      githubMetadata = buildGitHubSourceMetadata(inspection);
+      return buildGitHubSourceContent(inspection);
     }
 
     const website = await fetchWebsiteSource(parsed.rawLocation);
@@ -65,23 +77,43 @@ export async function createSourceRecord(input: unknown) {
     content,
   });
 
+  const metadata = {
+    ...(parsed.metadata ?? {}),
+    ...(githubMetadata ?? {}),
+  };
+
   if (flags.isDemoMode) {
     return {
       id: `source_${Date.now()}`,
       projectId: parsed.projectId,
       type: parsed.type,
+      title: parsed.title ?? parsed.rawLocation,
       rawLocation: parsed.rawLocation,
+      metadata: Object.keys(metadata).length ? metadata : null,
       indexedData: summary,
       status: "INDEXED",
       createdAt: new Date().toISOString(),
     };
   }
 
+  if (viewerId) {
+    const project = await prisma.project.findFirst({
+      where: { id: parsed.projectId, org: { ownerId: viewerId } },
+      select: { id: true },
+    });
+
+    if (!project) {
+      throw new Error("Workspace not found");
+    }
+  }
+
   return prisma.source.create({
     data: {
       projectId: parsed.projectId,
       type: parsed.type,
+      title: parsed.title ?? parsed.rawLocation,
       rawLocation: parsed.rawLocation,
+      metadata: metadata as unknown as Prisma.InputJsonValue,
       indexedData: summary as unknown as Prisma.InputJsonValue,
       status: "INDEXED",
     },
@@ -200,6 +232,32 @@ async function maybeCreateClip(
   });
 }
 
+function legacyImagePlaceholder(prompt: string, size: string) {
+  return `https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=${encodeURIComponent(prompt)}&image_size=${size}`;
+}
+
+async function resolveGeneratedImage(prompt: string, size: string) {
+  if (flags.hasPixverseCli) {
+    const result = await generateImageWithPixverse({ prompt, size });
+    if (!result.outputUrl) {
+      throw new Error("PixVerse CLI did not return an image URL. Check auth with `pixverse auth status`.");
+    }
+    return {
+      outputUrl: result.outputUrl,
+      thumbnailUrl: result.thumbnailUrl ?? result.outputUrl,
+      status: result.status,
+      externalId: result.id,
+    };
+  }
+
+  return {
+    outputUrl: legacyImagePlaceholder(prompt, size),
+    thumbnailUrl: legacyImagePlaceholder(prompt, size),
+    status: "READY" as const,
+    externalId: null,
+  };
+}
+
 export async function generateVideoJob(input: unknown) {
   const parsed = videoGenerateSchema.parse(input);
   const template = templateCatalog.find((item) => item.key === parsed.templateKey);
@@ -216,7 +274,12 @@ export async function generateVideoJob(input: unknown) {
     brief: brief.data as never,
     templateName: template.name,
     templateStyle: template.style,
-    overrides: parsed.overrides,
+    overrides: [
+      parsed.overrides,
+      parsed.sourceImageAssetId ? "Use the selected reference image as the visual anchor for the motion treatment." : "",
+    ]
+      .filter(Boolean)
+      .join(" "),
   });
 
   const pixverse = await submitTextToVideo({ prompt, settings: parsed.settings });
@@ -226,7 +289,7 @@ export async function generateVideoJob(input: unknown) {
       job: {
         id: `job_${Date.now()}`,
         projectId: parsed.projectId,
-        mode: "TEXT2VIDEO",
+        mode: parsed.sourceImageAssetId ? "IMG2VIDEO" : "TEXT2VIDEO",
         prompt,
         settings: parsed.settings,
         pixverseVideoId: pixverse.id,
@@ -252,7 +315,7 @@ export async function generateVideoJob(input: unknown) {
   const job = await prisma.videoJob.create({
     data: {
       projectId: parsed.projectId,
-      mode: "TEXT2VIDEO",
+      mode: parsed.sourceImageAssetId ? "IMG2VIDEO" : "TEXT2VIDEO",
       prompt,
       settings: parsed.settings as unknown as Prisma.InputJsonValue,
       pixverseVideoId: pixverse.id,
@@ -274,6 +337,79 @@ export async function generateVideoJob(input: unknown) {
       : null;
 
   return { job, clip };
+}
+
+export async function generateImageAsset(input: unknown) {
+  const parsed = imageGenerateSchema.parse(input);
+  const brief = flags.isDemoMode
+    ? getDemoWorkspace(parsed.projectId).brief
+    : await getProjectBrief(parsed.projectId);
+  const template = parsed.templateKey
+    ? templateCatalog.find((item) => item.key === parsed.templateKey)
+    : null;
+
+  const prompt = await buildImagePrompt({
+    brief: (brief?.data ?? {}) as never,
+    templateName: template?.name,
+    direction: parsed.prompt,
+  });
+  const generated = await resolveGeneratedImage(prompt, parsed.size);
+
+  if (flags.isDemoMode) {
+    return {
+      job: {
+        id: `image_job_${Date.now()}`,
+        prompt,
+        status: generated.status,
+        outputUrl: generated.outputUrl,
+        createdAt: new Date().toISOString(),
+      },
+      image: {
+        id: `image_${Date.now()}`,
+        label: template ? `${template.name} concept` : "Generated concept",
+        kind: parsed.kind,
+        prompt,
+        outputUrl: generated.outputUrl,
+        thumbnailUrl: generated.thumbnailUrl,
+        createdAt: new Date().toISOString(),
+      },
+    };
+  }
+
+  const job = await prisma.imageJob.create({
+    data: {
+      projectId: parsed.projectId,
+      prompt,
+      settings: {
+        size: parsed.size,
+        templateKey: parsed.templateKey,
+        pixverseImageId: generated.externalId,
+        provider: flags.hasPixverseCli ? "pixverse-cli" : "legacy",
+      } as unknown as Prisma.InputJsonValue,
+      status: generated.status === "READY" ? "READY" : "PROCESSING",
+      outputUrl: generated.outputUrl,
+      thumbnailUrl: generated.thumbnailUrl,
+    },
+  });
+
+  const image = await prisma.imageAsset.create({
+    data: {
+      projectId: parsed.projectId,
+      imageJobId: job.id,
+      label: template ? `${template.name} concept` : "Generated concept",
+      kind: parsed.kind,
+      prompt,
+      outputUrl: generated.outputUrl,
+      thumbnailUrl: generated.thumbnailUrl,
+      metadata: {
+        size: parsed.size,
+        templateKey: parsed.templateKey,
+        pixverseImageId: generated.externalId,
+      } as unknown as Prisma.InputJsonValue,
+    },
+  });
+
+  return { job, image };
 }
 
 export async function pollVideoJobs(projectId?: string) {
@@ -348,20 +484,22 @@ export async function createStudioJob(
     };
   }
 
-  const clip = await prisma.clip.findUnique({ where: { id: parsed.clipId } });
+  const clip = parsed.clipId ? await prisma.clip.findUnique({ where: { id: parsed.clipId } }) : null;
   if (!clip) {
-    throw new Error("Clip not found");
+    if (!parsed.inputUrl || !parsed.projectId) {
+      throw new Error("Choose a workspace clip or provide a video URL to edit");
+    }
   }
 
   const result = await submitVideoEdit({
     mode,
     prompt: parsed.instructions,
-    sourceUrl: clip.outputUrl,
+    sourceUrl: clip?.outputUrl ?? parsed.inputUrl!,
   });
 
   const job = await prisma.videoJob.create({
     data: {
-      projectId: clip.projectId,
+      projectId: clip?.projectId ?? parsed.projectId!,
       mode: mode as VideoJobMode,
       prompt: parsed.instructions,
       pixverseVideoId: result.id,
@@ -371,16 +509,16 @@ export async function createStudioJob(
     },
   });
 
-  const nextVersion = clip.version + 1;
+  const nextVersion = (clip?.version ?? 0) + 1;
   const newClip = result.outputUrl
     ? await prisma.clip.create({
         data: {
-          projectId: clip.projectId,
+          projectId: clip?.projectId ?? parsed.projectId!,
           videoJobId: job.id,
-          parentClipId: clip.id,
-          label: `${clip.label} v${nextVersion}`,
-          tag: clip.tag as ClipTag,
-          durationSeconds: clip.durationSeconds,
+          parentClipId: clip?.id,
+          label: clip ? `${clip.label} v${nextVersion}` : `${mode} output v${nextVersion}`,
+          tag: (clip?.tag ?? "FULL") as ClipTag,
+          durationSeconds: clip?.durationSeconds ?? 12,
           version: nextVersion,
           outputUrl: result.outputUrl,
           thumbnailUrl: result.thumbnailUrl,

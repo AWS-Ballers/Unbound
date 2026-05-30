@@ -176,3 +176,72 @@ export async function buildPixversePrompt(input: {
 
   return response?.trim() || fallback;
 }
+
+export async function buildImagePrompt(input: {
+  brief: Partial<BriefData>;
+  templateName?: string;
+  direction: string;
+}) {
+  const fallback = [
+    `Create a premium product campaign still for ${input.brief.productName ?? "the product"}.`,
+    input.templateName ? `Template direction: ${input.templateName}.` : "",
+    input.brief.visualStyle ? `Visual style: ${input.brief.visualStyle}.` : "",
+    input.brief.toneOfVoice ? `Tone: ${input.brief.toneOfVoice}.` : "",
+    `Direction: ${input.direction}.`,
+    "Bright white premium environment, realistic photography, no interface chrome baked into the image, polished startup campaign aesthetic.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const response = await complete(
+    "You are an image prompt engineer. Output a single image-generation prompt string only.",
+    `Write one detailed prompt for a realistic campaign image.\n\nBRIEF:\n${JSON.stringify(input.brief, null, 2)}\n\nTEMPLATE: ${input.templateName ?? "None"}\nDIRECTION: ${input.direction}`,
+  );
+
+  return response?.trim() || fallback;
+}
+
+export async function answerWorkspaceQuestion(input: {
+  projectName: string;
+  workspaceContext: unknown;
+  focusedContext?: unknown;
+  question: string;
+}) {
+  const fallback = {
+    answer: `I reviewed the ${input.projectName} workspace. The strongest next step is to add one more source, confirm a template, and then generate both an image concept and a launch video cut.`,
+    suggestions: [
+      "Add a GitHub repo or product URL",
+      "Choose a template with stronger product framing",
+      "Generate reference images before video",
+    ],
+    citations: ["workspace-summary"],
+  };
+
+  const contextBlock = input.focusedContext
+    ? `FOCUSED REFERENCES (prioritize these):\n${JSON.stringify(input.focusedContext, null, 2)}\n\nFULL WORKSPACE CONTEXT:\n${JSON.stringify(input.workspaceContext, null, 2)}`
+    : `WORKSPACE CONTEXT:\n${JSON.stringify(input.workspaceContext, null, 2)}`;
+
+  const response = await complete(
+    'You are a product launch workspace assistant. Answer clearly using only the provided context. When focused references are present, ground your answer in them first. Return strict JSON as {"answer":"","suggestions":[],"citations":[]}.',
+    `PROJECT: ${input.projectName}\nQUESTION: ${input.question}\n${contextBlock}`,
+  );
+
+  if (!response) {
+    return fallback;
+  }
+
+  try {
+    const parsed = extractJson(response) as {
+      answer?: string;
+      suggestions?: string[];
+      citations?: string[];
+    };
+    return {
+      answer: parsed.answer ?? fallback.answer,
+      suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions.slice(0, 3) : fallback.suggestions,
+      citations: Array.isArray(parsed.citations) ? parsed.citations.slice(0, 6) : fallback.citations,
+    };
+  } catch {
+    return fallback;
+  }
+}

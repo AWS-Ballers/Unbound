@@ -1,5 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  // Use the classic engine so a normal postgresql:// DATABASE_URL works locally.
+  engineType = "library"
 }
 
 datasource db {
@@ -67,6 +69,25 @@ enum ReviewStatus {
   CHANGES
 }
 
+enum AssetJobStatus {
+  QUEUED
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum ImageAssetKind {
+  GENERATED
+  REFERENCE
+  COVER
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
 model User {
   id              String         @id @default(cuid())
   email           String         @unique
@@ -98,10 +119,15 @@ model Project {
   description       String?
   category          ProjectCategory
   activeTemplateKey String?
+  templateSettings  Json?
+  generationDefaults Json?
   sources           Source[]
   briefs            Brief[]
   videoJobs         VideoJob[]
   clips             Clip[]
+  imageJobs         ImageJob[]
+  imageAssets       ImageAsset[]
+  chatThreads       ChatThread[]
   publishPackages   PublishPackage[]
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
@@ -114,7 +140,9 @@ model Source {
   projectId    String
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   type         SourceType
+  title        String?
   rawLocation  String
+  metadata     Json?
   indexedData  Json?
   status       SourceStatus @default(PENDING)
   errorMessage String?
@@ -176,6 +204,68 @@ model Clip {
   packageLinks    PublishPackageClip[]
 
   @@index([projectId, createdAt])
+}
+
+model ImageJob {
+  id           String         @id @default(cuid())
+  projectId    String
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  prompt       String
+  settings     Json?
+  status       AssetJobStatus @default(QUEUED)
+  outputUrl    String?
+  thumbnailUrl String?
+  errorMessage String?
+  images       ImageAsset[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([projectId, status])
+}
+
+model ImageAsset {
+  id                 String         @id @default(cuid())
+  projectId          String
+  project            Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  imageJobId         String?
+  imageJob           ImageJob?      @relation(fields: [imageJobId], references: [id], onDelete: SetNull)
+  parentImageAssetId String?
+  parentImageAsset   ImageAsset?    @relation("ImageVersions", fields: [parentImageAssetId], references: [id], onDelete: SetNull)
+  versions           ImageAsset[]   @relation("ImageVersions")
+  label              String
+  kind               ImageAssetKind @default(GENERATED)
+  prompt             String?
+  outputUrl          String
+  thumbnailUrl       String?
+  metadata           Json?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@index([projectId, createdAt])
+}
+
+model ChatThread {
+  id        String        @id @default(cuid())
+  projectId String
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  messages  ChatMessage[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([projectId, createdAt])
+}
+
+model ChatMessage {
+  id         String    @id @default(cuid())
+  threadId    String
+  thread      ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  role        ChatRole
+  content     String
+  citations   Json?
+  createdAt   DateTime  @default(now())
+
+  @@index([threadId, createdAt])
 }
 
 model PublishPackage {

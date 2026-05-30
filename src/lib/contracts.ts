@@ -1,12 +1,38 @@
 import { z } from "zod";
 
+import { chatReferenceSchema } from "@/lib/chat-references";
+
 export const projectCategories = ["SAAS", "FINANCE", "COMMERCE", "INTERNAL", "OTHER"] as const;
 export const sourceTypes = ["FILE", "GITHUB", "WEBSITE", "TEXT"] as const;
 export const sourceStatuses = ["PENDING", "SCANNING", "INDEXED", "FAILED"] as const;
 export const videoJobModes = ["TEXT2VIDEO", "IMG2VIDEO", "TRANSITION", "EXTEND", "MODIFY", "SOUND"] as const;
 export const videoJobStatuses = ["QUEUED", "PROCESSING", "READY", "FAILED"] as const;
+export const assetJobStatuses = ["QUEUED", "PROCESSING", "READY", "FAILED"] as const;
 export const clipTags = ["HERO", "BROLL", "INTRO", "OUTRO", "SOCIAL", "FULL"] as const;
 export const publishStatuses = ["DRAFT", "REVIEW", "APPROVED", "PUBLISHED"] as const;
+export const imageAssetKinds = ["GENERATED", "REFERENCE", "COVER"] as const;
+export const chatRoles = ["USER", "ASSISTANT", "SYSTEM"] as const;
+
+export const templateSettingsSchema = z.object({
+  templateKey: z.string().min(1),
+  posterUrl: z.string().url().optional(),
+  posterPrompt: z.string().optional(),
+  style: z.string().optional(),
+});
+
+export const videoDurationOptions = [5, 8, 10, 12, 15] as const;
+
+export function normalizeVideoDuration(seconds: number) {
+  return (videoDurationOptions as readonly number[]).includes(seconds)
+    ? (seconds as (typeof videoDurationOptions)[number])
+    : 12;
+}
+
+export const generationDefaultsSchema = z.object({
+  durationSeconds: z.number().min(4).max(60).default(12),
+  aspectRatio: z.enum(["16:9", "9:16", "1:1"]).default("16:9"),
+  style: z.string().default("Cinematic"),
+});
 
 export const sourceSummarySchema = z.object({
   productName: z.string().optional(),
@@ -44,11 +70,19 @@ export const projectCreateSchema = z.object({
   category: z.enum(projectCategories),
 });
 
+export const projectUpdateSchema = z.object({
+  activeTemplateKey: z.string().min(1).optional(),
+  templateSettings: templateSettingsSchema.optional(),
+  generationDefaults: generationDefaultsSchema.optional(),
+});
+
 export const sourceCreateSchema = z.object({
   projectId: z.string().min(1),
   type: z.enum(sourceTypes),
   rawLocation: z.string().min(1),
+  title: z.string().optional(),
   content: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const briefGenerateSchema = z.object({
@@ -66,14 +100,17 @@ export const templateRecommendSchema = z.object({
 export const videoGenerateSchema = z.object({
   projectId: z.string().min(1),
   templateKey: z.string().min(1),
+  sourceImageAssetId: z.string().optional(),
   overrides: z.string().optional(),
-  settings: z
-    .object({
-      durationSeconds: z.number().min(4).max(60).default(12),
-      aspectRatio: z.enum(["16:9", "9:16", "1:1"]).default("16:9"),
-      style: z.string().default("Cinematic"),
-    })
-    .default({ durationSeconds: 12, aspectRatio: "16:9", style: "Cinematic" }),
+  settings: generationDefaultsSchema.default({ durationSeconds: 12, aspectRatio: "16:9", style: "Cinematic" }),
+});
+
+export const imageGenerateSchema = z.object({
+  projectId: z.string().min(1),
+  templateKey: z.string().min(1).optional(),
+  prompt: z.string().min(4),
+  kind: z.enum(imageAssetKinds).default("GENERATED"),
+  size: z.enum(["square_hd", "square", "portrait_4_3", "portrait_16_9", "landscape_4_3", "landscape_16_9"]).default("landscape_16_9"),
 });
 
 export const pollJobsSchema = z.object({
@@ -81,9 +118,17 @@ export const pollJobsSchema = z.object({
 });
 
 export const studioActionSchema = z.object({
-  clipId: z.string().min(1),
+  clipId: z.string().min(1).optional(),
+  inputUrl: z.string().url().optional(),
   instructions: z.string().min(4),
   projectId: z.string().optional(),
+});
+
+export const chatRequestSchema = z.object({
+  projectId: z.string().min(1),
+  threadId: z.string().optional(),
+  message: z.string().min(2),
+  references: z.array(chatReferenceSchema).max(12).optional(),
 });
 
 export const publishCreateSchema = z.object({

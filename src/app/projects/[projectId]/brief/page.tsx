@@ -17,13 +17,14 @@ export default async function BriefPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-semibold text-[var(--foreground)]">Product brief</h2>
-          <p className="mt-2 text-sm text-[var(--muted)]">Merge all indexed source summaries into a single structured product narrative.</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Narrative</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--foreground)]">Product brief</h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Merge all indexed source summaries into a single structured product narrative.</p>
         </div>
         <JsonActionButton endpoint="/api/brief/generate" label="Generate brief from sources" payload={{ projectId }} />
       </div>
 
-      <div className="surface rounded-[28px] p-5">
+      <div className="surface fade-up rounded-[30px] p-5">
         <div className="mb-5 flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Completeness</p>

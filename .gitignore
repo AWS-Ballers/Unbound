@@ -17,6 +17,10 @@
 /.next/
 /out/
 
+# locally persisted PixVerse CLI outputs
+/public/generated/*
+!/public/generated/.gitkeep
+
 # production
 /build
 

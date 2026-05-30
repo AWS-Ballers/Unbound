@@ -10,7 +10,12 @@
     "check": "tsc --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:up": "docker compose up -d --wait",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "tsx --env-file=.env prisma/seed.ts",
+    "db:setup": "npm run db:up && npm run db:push && npm run db:seed",
+    "templates:posters": "tsx scripts/generate-template-posters.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
