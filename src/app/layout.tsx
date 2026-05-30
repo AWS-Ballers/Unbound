@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Manrope } from "next/font/google";
+import { Cormorant_Garamond, IBM_Plex_Mono, Manrope } from "next/font/google";
+
+import { Providers } from "@/components/providers";
+
 import "./globals.css";
 
 const bodyFont = Manrope({
@@ -11,6 +14,12 @@ const displayFont = Cormorant_Garamond({
   variable: "--font-heading",
   weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
+});
+
+const monoFont = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
+  subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -27,9 +36,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bodyFont.variable} ${displayFont.variable} h-full scroll-smooth antialiased`}
+      suppressHydrationWarning
+      className={`${bodyFont.variable} ${displayFont.variable} ${monoFont.variable} h-full scroll-smooth antialiased`}
     >
-      <body className="min-h-full bg-[#f8f4ee] text-zinc-900">{children}</body>
+      <body className="min-h-full bg-[var(--background)] text-[var(--foreground)]">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }
