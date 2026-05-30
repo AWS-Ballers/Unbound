@@ -27,9 +27,9 @@ const plexMono = IBM_Plex_Mono({
 export const runtime = "nodejs";
 
 export const metadata: Metadata = {
-  title: "Launchly",
+  title: "Launchly | AI Launch Videos",
   description:
-    "Generate launch-ready product briefs, video prompts, and cinematic launch assets.",
+    "Turn any product into a launch-ready cinematic experience with AI-powered briefs, templates, and video generation.",
 };
 
 export default function RootLayout({
@@ -41,8 +41,15 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${sora.variable} ${newsreader.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${sora.variable} ${newsreader.variable} ${plexMono.variable} h-full scroll-smooth antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("theme");var d=t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d)}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full bg-[var(--background)] text-[var(--foreground)]">
         <ThemeProvider>
           <Providers>{children}</Providers>

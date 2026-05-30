@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
+        hostname: "coresg-normal.trae.ai",
+      },
+      {
+        protocol: "https",
         hostname: "images.unsplash.com",
       },
       {

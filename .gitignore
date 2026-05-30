@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -27,6 +28,11 @@
 # misc
 .DS_Store
 *.pem
+launchly-temp/
+.playwright-mcp/
+.serena/
+.trae/
+landing-*.png
 
 # debug
 npm-debug.log*
