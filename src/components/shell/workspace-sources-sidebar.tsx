@@ -28,17 +28,25 @@ function statusClass(status: string) {
 export function WorkspaceSourcesSidebar({
   projectId,
   sources,
+  nested = false,
 }: {
   projectId: string;
   sources: WorkspaceSourceItem[];
+  nested?: boolean;
 }) {
   const sourcesHref = `/projects/${projectId}/sources`;
   const visible = sources.slice(0, 10);
   const overflow = sources.length - visible.length;
 
   return (
-    <div>
-      <div className="mb-2 flex items-center justify-between px-3">
+    <div className={nested ? "ml-2 border-l border-[var(--border)] pl-2" : undefined}>
+      <div
+        className={
+          nested
+            ? "mb-1.5 flex items-center justify-between pl-1 pr-3"
+            : "mb-2 flex items-center justify-between px-3"
+        }
+      >
         <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
           Sources
         </p>

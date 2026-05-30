@@ -38,12 +38,12 @@ export function NewProjectForm() {
     toast.success("Project created");
     setName("");
     setDescription("");
+    router.refresh();
+
     if (payload?.project?.id) {
       router.push(`/projects/${payload.project.id}/sources`);
       return;
     }
-
-    router.refresh();
   }
 
   return (

@@ -36,6 +36,15 @@ export default async function ProjectLayout({
         id: project.id,
         name: project.name,
         category: project.category,
+        sources:
+          project.id === projectId
+            ? workspace.sources.map((source) => ({
+                id: source.id,
+                type: source.type,
+                title: source.title ?? source.rawLocation,
+                status: source.status,
+              }))
+            : project.sources,
       }))}
       currentWorkspace={{
         id: workspace.project.id,
@@ -46,12 +55,6 @@ export default async function ProjectLayout({
         href: `/projects/${projectId}/${tab.href}`,
         label: tab.label,
         iconKey: tab.href,
-      }))}
-      workspaceSources={workspace.sources.map((source) => ({
-        id: source.id,
-        type: source.type,
-        title: source.title ?? source.rawLocation,
-        status: source.status,
       }))}
       rightPanel={
         <WorkspaceRightPanel

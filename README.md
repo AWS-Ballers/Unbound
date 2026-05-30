@@ -8,7 +8,7 @@ Set `DEMO_MODE=false` and a `DATABASE_URL` in `.env`. Then start Postgres and ap
 # Option A — Docker Desktop running
 npm run db:setup
 
-# Option B — local Postgres on port 5432, then:
+# Option B — local Postgres on port 5433 (Docker maps 5433→5432; 5432 may be in use), then:
 npx prisma db push
 npm run db:seed
 ```

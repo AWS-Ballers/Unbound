@@ -5,8 +5,33 @@ import { generationDefaultsSchema, projectCreateSchema, projectUpdateSchema } fr
 import { isDatabaseUnreachableError, logDatabaseFallback } from "@/lib/database";
 import { prisma } from "@/lib/db";
 import { flags } from "@/lib/env";
-import { getDemoProjects, getDemoWorkspace } from "@/lib/mock-data";
+import {
+  getDemoProjects,
+  getDemoWorkspace,
+  registerCreatedDemoProject,
+  type DemoProjectListItem,
+  type DemoSidebarSource,
+} from "@/lib/mock-data";
 import { templateCatalog } from "@/lib/templates";
+
+export type ProjectSidebarSource = DemoSidebarSource;
+
+function mapProjectSidebarSources(
+  sources: Array<{
+    id: string;
+    type: string;
+    title: string | null;
+    rawLocation: string;
+    status: string;
+  }>,
+): ProjectSidebarSource[] {
+  return sources.map((source) => ({
+    id: source.id,
+    type: source.type,
+    title: source.title ?? source.rawLocation,
+    status: source.status,
+  }));
+}
 
 export const listProjectsForViewer = cache(async function listProjectsForViewer(viewerId: string) {
   if (flags.isDemoMode) {
@@ -18,7 +43,7 @@ export const listProjectsForViewer = cache(async function listProjectsForViewer(
     projects = await prisma.project.findMany({
       where: { org: { ownerId: viewerId } },
       include: {
-        sources: true,
+        sources: { orderBy: { createdAt: "desc" } },
         clips: true,
         briefs: { orderBy: { createdAt: "desc" }, take: 1 },
       },
@@ -27,7 +52,7 @@ export const listProjectsForViewer = cache(async function listProjectsForViewer(
   } catch (error) {
     if (process.env.NODE_ENV === "development" && isDatabaseUnreachableError(error)) {
       logDatabaseFallback("listProjectsForViewer");
-      return getDemoProjects();
+      return flags.isDemoMode ? getDemoProjects() : [];
     }
     throw error;
   }
@@ -41,6 +66,7 @@ export const listProjectsForViewer = cache(async function listProjectsForViewer(
     activeTemplateKey: project.activeTemplateKey,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
+    sources: mapProjectSidebarSources(project.sources),
     metrics: {
       sources: project.sources.length,
       clips: project.clips.length,
@@ -91,7 +117,7 @@ export async function createProjectForViewer(viewerId: string, input: unknown) {
   const parsed = projectCreateSchema.parse(input);
 
   if (flags.isDemoMode) {
-    return {
+    const project: DemoProjectListItem = {
       id: `project_${Date.now()}`,
       orgId: "launchly-demo-org",
       name: parsed.name,
@@ -100,8 +126,11 @@ export async function createProjectForViewer(viewerId: string, input: unknown) {
       activeTemplateKey: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      sources: [],
       metrics: { sources: 0, clips: 0, completeness: 0 },
     };
+    registerCreatedDemoProject(project);
+    return project;
   }
 
   const organization = await ensureOrganization(viewerId);

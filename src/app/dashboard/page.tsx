@@ -17,6 +17,7 @@ export default async function DashboardPage() {
         id: project.id,
         name: project.name,
         category: project.category,
+        sources: project.sources,
       }))}
     >
       <div className="space-y-5">

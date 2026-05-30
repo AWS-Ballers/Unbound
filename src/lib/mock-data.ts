@@ -47,43 +47,98 @@ const sourceSummaries: SourceSummary[] = [
   },
 ];
 
-export function getDemoProjects() {
-  return [
-    {
-      id: "launchly-demo-project",
-      orgId: demoViewer.orgId,
-      name: "Orbit Finance",
-      description: "AI bookkeeping and runway forecasting for startup finance teams",
-      category: "FINANCE",
-      activeTemplateKey: "launch-cinematic",
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-      updatedAt: new Date().toISOString(),
-      metrics: {
-        sources: 3,
-        clips: 2,
-        completeness: calculateCompletenessScore(brief),
-      },
-    },
-    {
-      id: "launchly-saas-project",
-      orgId: demoViewer.orgId,
-      name: "Signal Stack",
-      description: "Realtime product analytics for growth teams",
-      category: "SAAS",
-      activeTemplateKey: "social-ad",
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-      updatedAt: new Date().toISOString(),
-      metrics: {
-        sources: 2,
-        clips: 1,
-        completeness: 78,
-      },
-    },
-  ];
+export type DemoSidebarSource = {
+  id: string;
+  type: string;
+  title: string;
+  status: string;
+};
+
+export type DemoProjectListItem = {
+  id: string;
+  orgId: string;
+  name: string;
+  description: string | null;
+  category: string;
+  activeTemplateKey: string | null;
+  createdAt: string;
+  updatedAt: string;
+  sources: DemoSidebarSource[];
+  metrics: { sources: number; clips: number; completeness: number };
+};
+
+const demoSidebarSourcesByProject: Record<string, DemoSidebarSource[]> = {
+  "launchly-demo-project": [
+    { id: "source-text", type: "TEXT", title: "Founder positioning notes", status: "INDEXED" },
+    { id: "source-website", type: "WEBSITE", title: "Orbit website", status: "INDEXED" },
+    { id: "source-github", type: "GITHUB", title: "example/orbit-finance", status: "INDEXED" },
+  ],
+  "launchly-saas-project": [
+    { id: "signal-docs", type: "FILE", title: "Product analytics playbook.pdf", status: "INDEXED" },
+    { id: "signal-site", type: "WEBSITE", title: "signalstack.io", status: "INDEXED" },
+  ],
+};
+
+export function getDemoSidebarSources(projectId: string) {
+  return [...(demoSidebarSourcesByProject[projectId] ?? [])];
 }
 
-export function getDemoWorkspace(projectId = "launchly-demo-project") {
-  const recommendations = templateCatalog.slice(0, 3).map((template, index) => ({
+const seededDemoProjects: DemoProjectListItem[] = [
+  {
+    id: "launchly-demo-project",
+    orgId: demoViewer.orgId,
+    name: "Orbit Finance",
+    description: "AI bookkeeping and runway forecasting for startup finance teams",
+    category: "FINANCE",
+    activeTemplateKey: "launch-cinematic",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    updatedAt: new Date().toISOString(),
+    sources: getDemoSidebarSources("launchly-demo-project"),
+    metrics: {
+      sources: 3,
+      clips: 2,
+      completeness: calculateCompletenessScore(brief),
+    },
+  },
+  {
+    id: "launchly-saas-project",
+    orgId: demoViewer.orgId,
+    name: "Signal Stack",
+    description: "Realtime product analytics for growth teams",
+    category: "SAAS",
+    activeTemplateKey: "social-ad",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+    updatedAt: new Date().toISOString(),
+    sources: getDemoSidebarSources("launchly-saas-project"),
+    metrics: {
+      sources: 2,
+      clips: 1,
+      completeness: 78,
+    },
+  },
+];
+
+const createdDemoProjects = new Map<string, DemoProjectListItem>();
+
+export function registerCreatedDemoProject(project: DemoProjectListItem) {
+  createdDemoProjects.set(project.id, project);
+}
+
+export function getDemoProjects() {
+  const merged = new Map<string, DemoProjectListItem>();
+  for (const project of seededDemoProjects) {
+    merged.set(project.id, project);
+  }
+  for (const project of createdDemoProjects.values()) {
+    merged.set(project.id, project);
+  }
+  return [...merged.values()].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+  );
+}
+
+function buildTemplateRecommendations() {
+  return templateCatalog.slice(0, 3).map((template, index) => ({
     templateKey: template.key,
     confidence: [0.94, 0.88, 0.79][index] ?? 0.7,
     reasoning:
@@ -93,60 +148,171 @@ export function getDemoWorkspace(projectId = "launchly-demo-project") {
           ? "Strong commercial framing if the team wants broader brand-market energy."
           : "Useful for explaining the product clearly without losing cinematic polish.",
   }));
+}
+
+function buildEmptyDemoWorkspace(project: DemoProjectListItem) {
+  return {
+    viewer: demoViewer,
+    project: {
+      id: project.id,
+      orgId: project.orgId,
+      name: project.name,
+      description: project.description,
+      category: project.category,
+      activeTemplateKey: project.activeTemplateKey,
+      generationDefaults: { durationSeconds: 12, aspectRatio: "16:9", style: "Cinematic" },
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+    },
+    sources: [],
+    brief: null,
+    recommendations: buildTemplateRecommendations(),
+    jobs: [],
+    imageJobs: [],
+    images: [],
+    clips: [],
+    chatThread: {
+      id: `thread-${project.id}`,
+      title: `${project.name} workspace chat`,
+      messages: [
+        {
+          id: `message-system-${project.id}`,
+          role: "SYSTEM",
+          content:
+            "Welcome to your workspace. Add sources, choose a template, and use the assistant to shape image and video generation.",
+          citations: null,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    },
+    publishPackage: null,
+  };
+}
+
+export function getDemoWorkspace(projectId = "launchly-demo-project") {
+  const created = createdDemoProjects.get(projectId);
+  if (created) {
+    return buildEmptyDemoWorkspace(created);
+  }
+
+  const projectMeta =
+    seededDemoProjects.find((project) => project.id === projectId) ?? seededDemoProjects[0];
+
+  if (projectId === "launchly-saas-project") {
+    return {
+      viewer: demoViewer,
+      project: {
+        id: projectId,
+        orgId: demoViewer.orgId,
+        name: projectMeta.name,
+        description: projectMeta.description,
+        category: projectMeta.category,
+        activeTemplateKey: projectMeta.activeTemplateKey,
+        generationDefaults: { durationSeconds: 12, aspectRatio: "16:9", style: "Cinematic" },
+        createdAt: projectMeta.createdAt,
+        updatedAt: projectMeta.updatedAt,
+      },
+      sources: [
+        {
+          id: "signal-docs",
+          type: "FILE",
+          title: "Product analytics playbook.pdf",
+          rawLocation: "Product analytics playbook.pdf",
+          metadata: null,
+          status: "INDEXED",
+          indexedData: sourceSummaries[0],
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: "signal-site",
+          type: "WEBSITE",
+          title: "signalstack.io",
+          rawLocation: "https://signalstack.io",
+          metadata: null,
+          status: "INDEXED",
+          indexedData: sourceSummaries[1],
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      brief: null,
+      recommendations: buildTemplateRecommendations(),
+      jobs: [],
+      imageJobs: [],
+      images: [],
+      clips: [],
+      chatThread: {
+        id: "thread-signal",
+        title: "Signal Stack workspace chat",
+        messages: [
+          {
+            id: "message-system-signal",
+            role: "SYSTEM",
+            content:
+              "Welcome to Signal Stack. Add product docs or connect analytics repos to ground generation.",
+            citations: null,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      },
+      publishPackage: null,
+    };
+  }
+
+  const recommendations = buildTemplateRecommendations();
 
   return {
     viewer: demoViewer,
     project: {
       id: projectId,
       orgId: demoViewer.orgId,
-      name: "Orbit Finance",
-      description: "AI bookkeeping and runway forecasting for startup finance teams",
-      category: "FINANCE",
-      activeTemplateKey: "launch-cinematic",
+      name: projectMeta.name,
+      description: projectMeta.description,
+      category: projectMeta.category,
+      activeTemplateKey: projectMeta.activeTemplateKey,
       generationDefaults: { durationSeconds: 12, aspectRatio: "16:9", style: "Cinematic" },
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: projectMeta.createdAt,
+      updatedAt: projectMeta.updatedAt,
     },
     sources: [
-      {
-        id: "source-text",
-        type: "TEXT",
-        title: "Founder positioning notes",
-        rawLocation: "Founder positioning notes",
-        metadata: null,
-        status: "INDEXED",
-        indexedData: sourceSummaries[0],
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: "source-website",
-        type: "WEBSITE",
-        title: "Orbit website",
-        rawLocation: "https://orbitfinance.app",
-        metadata: null,
-        status: "INDEXED",
-        indexedData: sourceSummaries[1],
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: "source-github",
-        type: "GITHUB",
-        title: "example/orbit-finance",
-        rawLocation: "https://github.com/example/orbit-finance",
-        metadata: {
-          connector: "github",
-          fullName: "example/orbit-finance",
-          branch: "main",
-          language: "TypeScript",
-          stats: { totalFilesInTree: 142, indexedFiles: 18 },
-          treePreview: ["README.md", "package.json", "src/app/page.tsx", "src/lib/pricing.ts"],
-          indexedPaths: ["README.md", "package.json", "src/app/page.tsx", "src/lib/pricing.ts"],
-        },
-        status: "INDEXED",
-        indexedData: sourceSummaries[0],
-        createdAt: new Date().toISOString(),
-      },
-    ],
+            {
+              id: "source-text",
+              type: "TEXT",
+              title: "Founder positioning notes",
+              rawLocation: "Founder positioning notes",
+              metadata: null,
+              status: "INDEXED",
+              indexedData: sourceSummaries[0],
+              createdAt: new Date().toISOString(),
+            },
+            {
+              id: "source-website",
+              type: "WEBSITE",
+              title: "Orbit website",
+              rawLocation: "https://orbitfinance.app",
+              metadata: null,
+              status: "INDEXED",
+              indexedData: sourceSummaries[1],
+              createdAt: new Date().toISOString(),
+            },
+            {
+              id: "source-github",
+              type: "GITHUB",
+              title: "example/orbit-finance",
+              rawLocation: "https://github.com/example/orbit-finance",
+              metadata: {
+                connector: "github",
+                fullName: "example/orbit-finance",
+                branch: "main",
+                language: "TypeScript",
+                stats: { totalFilesInTree: 142, indexedFiles: 18 },
+                treePreview: ["README.md", "package.json", "src/app/page.tsx", "src/lib/pricing.ts"],
+                indexedPaths: ["README.md", "package.json", "src/app/page.tsx", "src/lib/pricing.ts"],
+              },
+              status: "INDEXED",
+              indexedData: sourceSummaries[0],
+              createdAt: new Date().toISOString(),
+            },
+          ],
     brief: {
       id: "brief-main",
       data: brief,

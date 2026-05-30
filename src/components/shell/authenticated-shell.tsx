@@ -11,10 +11,11 @@ import {
 import type { WorkspaceSourceItem } from "@/components/shell/workspace-sources-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-type ShellWorkspace = {
+export type ShellWorkspace = {
   id: string;
   name: string;
   category: string;
+  sources?: WorkspaceSourceItem[];
 };
 
 type ShellTab = {
@@ -28,7 +29,6 @@ export function AuthenticatedShell({
   workspaces,
   currentWorkspace,
   workspaceTabs = [],
-  workspaceSources = [],
   children,
   rightPanel,
 }: {
@@ -41,7 +41,6 @@ export function AuthenticatedShell({
   workspaces: ShellWorkspace[];
   currentWorkspace?: { id: string; name: string; description?: string | null };
   workspaceTabs?: ShellTab[];
-  workspaceSources?: WorkspaceSourceItem[];
   children: ReactNode;
   rightPanel?: ReactNode;
 }) {
@@ -82,7 +81,6 @@ export function AuthenticatedShell({
           workspaces={workspaces}
           currentWorkspaceId={currentWorkspace?.id}
           workspaceTabs={workspaceTabs}
-          workspaceSources={workspaceSources}
         />
 
         <div className="mt-auto border-t border-[var(--border)] p-4">

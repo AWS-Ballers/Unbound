@@ -22,6 +22,7 @@ type ShellWorkspace = {
   id: string;
   name: string;
   category: string;
+  sources?: WorkspaceSourceItem[];
 };
 
 export type WorkspaceTabIconKey = "sources" | "images" | "generate" | "studio" | "library";
@@ -85,12 +86,10 @@ export function WorkspaceSidebarNav({
   workspaces,
   currentWorkspaceId,
   workspaceTabs = [],
-  workspaceSources = [],
 }: {
   workspaces: ShellWorkspace[];
   currentWorkspaceId?: string;
   workspaceTabs?: WorkspaceTab[];
-  workspaceSources?: WorkspaceSourceItem[];
 }) {
   const pathname = usePathname();
 
@@ -126,16 +125,24 @@ export function WorkspaceSidebarNav({
             workspaces.map((workspace) => {
               const active = currentWorkspaceId === workspace.id;
               return (
-                <Link
-                  key={workspace.id}
-                  href={`/projects/${workspace.id}/sources`}
-                  className={workspaceLinkClass(active)}
-                >
-                  <span className="truncate">{workspace.name}</span>
-                  <span className="ml-2 shrink-0 text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
-                    {workspace.category}
-                  </span>
-                </Link>
+                <div key={workspace.id} className="space-y-0.5">
+                  <Link
+                    href={`/projects/${workspace.id}/sources`}
+                    className={workspaceLinkClass(active)}
+                  >
+                    <span className="truncate">{workspace.name}</span>
+                    <span className="ml-2 shrink-0 text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">
+                      {workspace.category}
+                    </span>
+                  </Link>
+                  {active ? (
+                    <WorkspaceSourcesSidebar
+                      projectId={workspace.id}
+                      sources={workspace.sources ?? []}
+                      nested
+                    />
+                  ) : null}
+                </div>
               );
             })
           )}
@@ -161,10 +168,6 @@ export function WorkspaceSidebarNav({
             })}
           </div>
         </div>
-      ) : null}
-
-      {currentWorkspaceId ? (
-        <WorkspaceSourcesSidebar projectId={currentWorkspaceId} sources={workspaceSources} />
       ) : null}
     </nav>
   );

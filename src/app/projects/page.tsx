@@ -18,6 +18,7 @@ export default async function ProjectsPage() {
         id: project.id,
         name: project.name,
         category: project.category,
+        sources: project.sources,
       }))}
     >
       <div className="space-y-5">

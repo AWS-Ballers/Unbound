@@ -14,8 +14,8 @@ export async function POST(request: Request) {
   try {
     const viewer = await getViewer();
     const project = await createProjectForViewer(viewer.id, await request.json());
-    revalidatePath("/projects");
-    revalidatePath("/dashboard");
+    revalidatePath("/projects", "layout");
+    revalidatePath("/dashboard", "layout");
     revalidatePath(`/projects/${project.id}`, "layout");
     return NextResponse.json({ project });
   } catch (error) {
