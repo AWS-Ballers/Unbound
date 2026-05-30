@@ -21,6 +21,10 @@ const nextConfig: NextConfig = {
         hostname: "coresg-normal.trae.ai",
       },
       {
+        protocol: "https",
+        hostname: "media.pixverse.ai",
+      },
+      {
         protocol: "http",
         hostname: "localhost",
       },
