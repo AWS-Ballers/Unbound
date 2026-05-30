@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { ArrowLeft, PlayCircle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+
+const DEMO_VIDEO_SRC = "/PixVerse_V6_Fusion_360P_1_A_cinematic_TVC_comm.mp4";
 
 export default function DemoPage() {
   return (
@@ -16,26 +18,27 @@ export default function DemoPage() {
         <div className="mt-10 grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div>
             <p className="text-xs uppercase tracking-[0.26em] text-violet-700/80">
-              Demo route
+              Demo
             </p>
             <h1 className="mt-5 font-display text-5xl leading-tight text-zinc-950">
-              Drop your walkthrough here when the product flow is ready.
+              See Launchly in action
             </h1>
             <p className="mt-5 max-w-xl text-base leading-7 text-zinc-600">
-              This route is intentionally simple for the MVP. Replace the framed
-              surface with a Loom, MP4, or embedded product walkthrough once the
-              full Launchly flow is recorded.
+              A sample cinematic launch clip generated with PixVerse from product
+              context — the same pipeline you get inside a workspace.
             </p>
           </div>
 
-          <div className="flex aspect-video items-center justify-center rounded-[1.75rem] border border-dashed border-zinc-900/15 bg-[#f4ecdf]">
-            <div className="text-center">
-              <PlayCircle className="mx-auto h-14 w-14 text-violet-600" />
-              <p className="mt-4 text-base text-zinc-800">Demo video placeholder</p>
-              <p className="mt-2 text-sm text-zinc-500">
-                16:9 walkthrough surface
-              </p>
-            </div>
+          <div className="overflow-hidden rounded-[1.75rem] border border-zinc-900/10 bg-black shadow-lg">
+            <video
+              className="aspect-video w-full object-cover"
+              src={DEMO_VIDEO_SRC}
+              controls
+              playsInline
+              preload="metadata"
+            >
+              Your browser does not support embedded video playback.
+            </video>
           </div>
         </div>
       </div>
