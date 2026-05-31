@@ -1,10 +1,12 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
+import { getViewer } from "@/lib/auth";
 import { pollVideoJobs } from "@/server/generation";
 
 export async function POST(request: Request) {
   try {
+    await getViewer();
     const { projectId } = await request.json().catch(() => ({ projectId: undefined }));
     const jobs = await pollVideoJobs(projectId);
 

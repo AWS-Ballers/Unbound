@@ -18,19 +18,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "coresg-normal.trae.ai",
-      },
-      {
-        protocol: "https",
         hostname: "media.pixverse.ai",
       },
       {
         protocol: "http",
         hostname: "localhost",
-      },
-      {
-        protocol: "https",
-        hostname: "coresg-normal.trae.ai",
       },
     ],
   },

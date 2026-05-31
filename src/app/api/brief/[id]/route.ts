@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 
+import { getViewer } from "@/lib/auth";
 import { updateBriefRecord } from "@/server/generation";
 
 export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
+    await getViewer();
     const { id } = await context.params;
     const brief = await updateBriefRecord(id, await request.json());
     return NextResponse.json({ brief });
