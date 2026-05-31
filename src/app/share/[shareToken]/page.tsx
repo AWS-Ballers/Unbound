@@ -21,13 +21,13 @@ export default async function SharePage({
               className="display-title fade-up mt-5 max-w-4xl text-5xl leading-none text-[var(--foreground)] md:text-7xl"
               style={{ animationDelay: "90ms" }}
             >
-              {shared.package.publicTitle ?? shared.project.name}
+              {shared.package?.publicTitle ?? shared.project.name}
             </h1>
             <p
               className="fade-up mt-5 max-w-3xl text-sm leading-7 text-[var(--muted)] md:text-base"
               style={{ animationDelay: "180ms" }}
             >
-              {shared.package.publicDescription ?? shared.project.description}
+              {shared.package?.publicDescription ?? shared.project.description}
             </p>
           </div>
           <div

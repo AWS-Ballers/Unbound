@@ -2,7 +2,7 @@
 
 import { Download, Loader2, Upload, Wand2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 const actions = [
@@ -25,12 +25,12 @@ export function StudioActions({
   const router = useRouter();
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [clipId, setClipId] = useState(selectedClipId ?? clips[0]?.id ?? "");
+  const [prevSelected, setPrevSelected] = useState(selectedClipId);
 
-  useEffect(() => {
-    if (selectedClipId) {
-      setClipId(selectedClipId);
-    }
-  }, [selectedClipId]);
+  if (selectedClipId && selectedClipId !== prevSelected) {
+    setPrevSelected(selectedClipId);
+    setClipId(selectedClipId);
+  }
 
   function handleClipChange(nextId: string) {
     setClipId(nextId);

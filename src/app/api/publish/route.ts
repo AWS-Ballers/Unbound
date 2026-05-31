@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 
+import { getViewer } from "@/lib/auth";
 import { createPublishPackage } from "@/server/generation";
 
 export async function POST(request: Request) {
   try {
+    await getViewer();
     const publishPackage = await createPublishPackage(await request.json());
     return NextResponse.json({ publishPackage });
   } catch (error) {

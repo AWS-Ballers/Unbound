@@ -38,19 +38,6 @@ import {
 import { templateCatalog } from "@/lib/templates";
 import { fetchWebsiteSource } from "@/lib/website";
 
-async function getProjectBrief(projectId: string) {
-  const brief = await prisma.brief.findFirst({
-    where: { projectId },
-    orderBy: { createdAt: "desc" },
-  });
-
-  if (!brief) {
-    throw new Error("Generate a brief before creating videos");
-  }
-
-  return brief;
-}
-
 function buildFallbackBriefData(input: {
   productName: string;
   description?: string | null;

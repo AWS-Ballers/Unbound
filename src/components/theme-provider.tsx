@@ -6,7 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 
@@ -36,25 +36,54 @@ function readStoredTheme(): Theme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+let themeSnapshot: Theme = "light";
+let themeInitialized = false;
+const themeListeners = new Set<() => void>();
+
+function subscribeTheme(listener: () => void) {
+  themeListeners.add(listener);
+  return () => {
+    themeListeners.delete(listener);
+  };
+}
+
+function getClientTheme(): Theme {
+  if (!themeInitialized) {
+    themeInitialized = true;
+    themeSnapshot = readStoredTheme();
+  }
+  return themeSnapshot;
+}
+
+function getServerTheme(): Theme {
+  return "light";
+}
+
+function setThemeSnapshot(theme: Theme) {
+  themeSnapshot = theme;
+  for (const listener of themeListeners) {
+    listener();
+  }
+}
+
+const subscribeNoop = () => () => {};
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [resolvedTheme, setResolvedTheme] = useState<Theme>("light");
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(subscribeNoop, () => true, () => false);
+  const resolvedTheme = useSyncExternalStore(subscribeTheme, getClientTheme, getServerTheme);
 
   useEffect(() => {
-    const theme = readStoredTheme();
-    setResolvedTheme(theme);
-    applyTheme(theme);
-    setMounted(true);
-  }, []);
+    applyTheme(resolvedTheme);
+  }, [resolvedTheme]);
 
   const setTheme = useCallback((theme: Theme) => {
-    setResolvedTheme(theme);
     try {
       localStorage.setItem("theme", theme);
     } catch {
       /* ignore */
     }
     applyTheme(theme);
+    setThemeSnapshot(theme);
   }, []);
 
   const value = useMemo(

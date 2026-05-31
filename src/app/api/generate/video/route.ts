@@ -1,10 +1,12 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
+import { getViewer } from "@/lib/auth";
 import { generateVideoJob } from "@/server/generation";
 
 export async function POST(request: Request) {
   try {
+    await getViewer();
     const body = await request.json();
     const payload = await generateVideoJob(body);
     const projectId = typeof body?.projectId === "string" ? body.projectId : payload.job.projectId;
